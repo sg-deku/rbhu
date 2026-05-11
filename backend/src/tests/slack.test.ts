@@ -111,6 +111,29 @@ describe('SlackService', () => {
     expect(mockHistory).toHaveBeenCalledTimes(2);
   });
 
+  it('should resolve threads for messages with replies', async () => {
+    prisma.slackIntegration.findUnique.mockResolvedValue({
+      accessToken: 'slack-token-123',
+    });
+
+    const messages = [
+      { ts: '1', text: 'parent', thread_ts: '1', reply_count: 1 },
+      { ts: '2', text: 'no thread' },
+    ];
+
+    mockReplies.mockResolvedValue({
+      ok: true,
+      messages: [{ ts: '1', text: 'parent' }, { ts: '1.1', text: 'reply' }],
+    });
+
+    const result = await slackService.resolveThreads('C123', messages);
+
+    expect(result[0].replies).toHaveLength(1);
+    expect(result[0].replies[0].text).toBe('reply');
+    expect(result[1].replies).toBeUndefined();
+    expect(mockReplies).toHaveBeenCalledWith(expect.objectContaining({ ts: '1' }));
+  });
+
   it('should throw error if integration not found', async () => {
     prisma.slackIntegration.findUnique.mockResolvedValue(null);
 

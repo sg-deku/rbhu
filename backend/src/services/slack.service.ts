@@ -75,4 +75,18 @@ export class SlackService {
 
     return allMessages;
   }
+
+  async resolveThreads(channelId: string, messages: any[]) {
+    const messagesWithThreads = [...messages];
+
+    for (const message of messagesWithThreads) {
+      if (message.thread_ts && message.reply_count > 0) {
+        const replies = await this.getThreadMessages(channelId, message.thread_ts);
+        // Exclude the parent message which is usually the first in replies
+        message.replies = replies.filter((r: any) => r.ts !== message.ts);
+      }
+    }
+
+    return messagesWithThreads;
+  }
 }
