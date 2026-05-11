@@ -24,8 +24,8 @@
     "supertest": "latest",
     "casbin": "latest",
     "@aws-sdk/client-s3": "latest",
-    "prisma": "latest",
-    "@prisma/client": "latest",
+    "prisma": "^5.11.0",
+    "@prisma/client": "^5.11.0",
     "@elastic/elasticsearch": "latest",
     "express-session": "latest"
   },

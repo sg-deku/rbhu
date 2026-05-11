@@ -17,6 +17,21 @@ model User {
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  slackIntegrations SlackIntegration[]
+}
+
+model SlackIntegration {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  accessToken  String
+  botUserId    String?
+  teamId       String?
+  teamName     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId])
 }
 
 enum Role {
