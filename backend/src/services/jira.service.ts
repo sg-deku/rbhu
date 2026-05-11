@@ -84,9 +84,12 @@ export class JiraService {
     return this.jiraFetch('/rest/api/3/project');
   }
 
-  async getIssues(projectKey?: string) {
+  async getIssues(projectKey?: string, startAt: number = 0, maxResults: number = 50) {
     const jql = projectKey ? `project = "${projectKey}"` : '';
-    const query = jql ? `?jql=${encodeURIComponent(jql)}` : '';
+    let query = `?startAt=${startAt}&maxResults=${maxResults}`;
+    if (jql) {
+      query += `&jql=${encodeURIComponent(jql)}`;
+    }
     return this.jiraFetch(`/rest/api/3/search${query}`);
   }
 
