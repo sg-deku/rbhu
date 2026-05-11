@@ -18,7 +18,13 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Implementation
+### [x] Step: Implementation
+- [x] RB-52: Add `SlackIntegration` model to Prisma schema
+- [x] RB-23: Implement Slack Service with message fetching logic and unit tests
+- [x] RB-22: Implement Slack OAuth flow, Controller, and Routes with tests
+- [x] RB-24: Implement history poller logic
+- [x] RB-25: Implement thread resolution (group replies with parent messages)
+- [x] RB-26: Build message sanitization (mentions, emojis)
 
 **Debug requests, questions, and investigations:** answer or investigate first. Do not create a plan upfront — the user needs an answer, not a plan. A plan may become relevant later once the investigation reveals what needs to change.
 
