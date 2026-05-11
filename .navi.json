@@ -1,0 +1,33 @@
+{
+  "projectName": "rbhu",
+  "projectType": "Custom",
+  "quickStack": "None",
+  "frontendLanguage": "typescript",
+  "frontendFramework": "Next.js",
+  "cssFramework": "Tailwind CSS",
+  "uiLibrary": "ShadCN UI",
+  "stateManagement": "Zustand",
+  "buildTool": "Vite",
+  "animationLibrary": "Framer Motion",
+  "backendLanguage": "Python",
+  "backendFramework": "FastAPI",
+  "database": "PostgreSQL",
+  "orm": "Prisma",
+  "features": [
+    "JWT Authentication",
+    "OAuth (Google/GitHub)",
+    "Role Based Access Control (RBAC)",
+    "Payment Gateway (Stripe)",
+    "Cloud Storage (AWS S3)",
+    "Search (Elasticsearch)",
+    "API Documentation (Swagger)",
+    "Rate Limiting",
+    "Error Tracking (Sentry)",
+    "Testing (Jest)",
+    "E2E Testing (Playwright)",
+    "Docker Support",
+    "CI/CD (GitHub Actions)"
+  ],
+  "deployTarget": "Vercel",
+  "license": "MIT"
+}

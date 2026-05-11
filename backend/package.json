@@ -1,0 +1,46 @@
+{
+  "name": "rbhu-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon",
+    "build": "tsc",
+    "test": "jest --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "jsonwebtoken": "latest",
+    "bcryptjs": "latest",
+    "passport": "latest",
+    "passport-google-oauth20": "latest",
+    "passport-github2": "latest",
+    "stripe": "latest",
+    "express-rate-limit": "latest",
+    "swagger-ui-express": "latest",
+    "swagger-jsdoc": "latest",
+    "@sentry/node": "latest",
+    "jest": "latest",
+    "supertest": "latest",
+    "casbin": "latest",
+    "@aws-sdk/client-s3": "latest",
+    "prisma": "latest",
+    "@prisma/client": "latest",
+    "@elastic/elasticsearch": "latest",
+    "express-session": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0",
+    "@types/express": "^4.17.0",
+    "ts-node": "^10.9.0",
+    "nodemon": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/bcryptjs": "^2.4.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "supertest": "^6.0.0",
+    "@types/supertest": "^2.0.0"
+  }
+}
