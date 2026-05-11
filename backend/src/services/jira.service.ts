@@ -93,7 +93,15 @@ export class JiraService {
     return this.jiraFetch(`/rest/api/3/search${query}`);
   }
 
-  async getComments(issueIdOrKey: string) {
-    return this.jiraFetch(`/rest/api/3/issue/${issueIdOrKey}/comment`);
+  async getComments(issueIdOrKey: string, threaded: boolean = false) {
+    const data = await this.jiraFetch(`/rest/api/3/issue/${issueIdOrKey}/comment`);
+    
+    if (threaded && data.comments) {
+      return data.comments.sort((a: any, b: any) => 
+        new Date(a.created).getTime() - new Date(b.created).getTime()
+      );
+    }
+
+    return data;
   }
 }
