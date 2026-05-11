@@ -53,7 +53,7 @@ export class JiraService {
     return data.access_token;
   }
 
-  private async jiraFetch(endpoint: string, options: any = {}) {
+  private async jiraFetch(endpoint: string, options: any = {}): Promise<any> {
     let { accessToken, cloudId, refreshToken } = await this.getTokens();
 
     const url = `https://api.atlassian.com/ex/jira/${cloudId}${endpoint}`;
@@ -69,18 +69,11 @@ export class JiraService {
 
     if (response.status === 401 && refreshToken) {
       accessToken = await this.refreshAccessToken(refreshToken);
-      response = await fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      });
+      return this.jiraFetch(endpoint, options);
     }
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       throw new Error(`JIRA API Error: ${response.statusText} - ${JSON.stringify(error)}`);
     }
 

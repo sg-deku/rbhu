@@ -31,7 +31,7 @@ describe('JiraService', () => {
 
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([{ id: 'proj-1', key: 'PROJ' }]),
+      json: () => Promise.resolve([{ id: 'proj-1', key: 'PROJ', name: 'Project 1' }]),
     });
 
     const projects = await jiraService.getProjects() as any[];
@@ -40,7 +40,11 @@ describe('JiraService', () => {
     expect(projects[0].key).toBe('PROJ');
     expect(global.fetch).toHaveBeenCalledWith(
       'https://api.atlassian.com/ex/jira/cloud-123/rest/api/3/project',
-      expect.any(Object)
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-123',
+        }),
+      })
     );
   });
 
@@ -72,5 +76,11 @@ describe('JiraService', () => {
       where: { userId },
       data: { accessToken: 'new-token', refreshToken: 'new-refresh' },
     });
+  });
+
+  it('should throw error if integration not found', async () => {
+    prisma.jiraIntegration.findUnique.mockResolvedValue(null);
+
+    await expect(jiraService.getProjects()).rejects.toThrow('JIRA integration not found');
   });
 });
