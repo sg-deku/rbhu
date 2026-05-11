@@ -21,6 +21,11 @@ describe('JiraService', () => {
     jest.clearAllMocks();
     jiraService = new JiraService(userId);
     (global as any).fetch = jest.fn();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('should fetch projects successfully', async () => {
@@ -195,5 +200,33 @@ describe('JiraService', () => {
     });
 
     await expect(jiraService.generateIssueUrl('RB-1')).rejects.toThrow('JIRA resource not found');
+  });
+
+  it('should retry on 429 rate limit', async () => {
+    prisma.jiraIntegration.findUnique.mockResolvedValue({
+      accessToken: 'token-123',
+      cloudId: 'cloud-123',
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        status: 429,
+        ok: false,
+        headers: { get: () => '1' },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ id: 'proj-1' }]),
+      });
+
+    const promise = jiraService.getProjects();
+    
+    // Fast-forward time for backoff
+    await jest.advanceTimersByTimeAsync(1000);
+
+    const projects = await promise as any[];
+
+    expect(projects).toHaveLength(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

@@ -53,7 +53,11 @@ export class JiraService {
     return data.access_token;
   }
 
-  private async jiraFetch(endpoint: string, options: any = {}): Promise<any> {
+  private async backoff(seconds: number) {
+    return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+  }
+
+  private async jiraFetch(endpoint: string, options: any = {}, retryCount: number = 0): Promise<any> {
     let { accessToken, cloudId, refreshToken } = await this.getTokens();
 
     const url = `https://api.atlassian.com/ex/jira/${cloudId}${endpoint}`;
@@ -67,9 +71,16 @@ export class JiraService {
       },
     });
 
+    if (response.status === 429 && retryCount < 3) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) : Math.pow(2, retryCount);
+      await this.backoff(waitTime);
+      return this.jiraFetch(endpoint, options, retryCount + 1);
+    }
+
     if (response.status === 401 && refreshToken) {
       accessToken = await this.refreshAccessToken(refreshToken);
-      return this.jiraFetch(endpoint, options);
+      return this.jiraFetch(endpoint, options, retryCount);
     }
 
     if (!response.ok) {
