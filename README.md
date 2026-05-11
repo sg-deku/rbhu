@@ -42,3 +42,4 @@ npm run prisma:migrate
 
 ---
 *Generated with ❤️ by Navi 🧭*
+# rbhu
