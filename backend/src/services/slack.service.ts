@@ -89,4 +89,20 @@ export class SlackService {
 
     return messagesWithThreads;
   }
+
+  sanitizeMessage(text: string): string {
+    if (!text) return '';
+
+    // Replace <@U123> with @U123
+    let sanitized = text.replace(/<@([A-Z0-9]+)>/g, '@$1');
+    
+    // Replace <#C123|general> with #general or #C123
+    sanitized = sanitized.replace(/<#([A-Z0-9]+)\|([^>]+)>/g, '#$2');
+    sanitized = sanitized.replace(/<#([A-Z0-9]+)>/g, '#$1');
+
+    // Replace <!here> or <!channel>
+    sanitized = sanitized.replace(/<!([^>]+)>/g, '@$1');
+
+    return sanitized;
+  }
 }

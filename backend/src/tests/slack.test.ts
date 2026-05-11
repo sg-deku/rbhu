@@ -134,6 +134,13 @@ describe('SlackService', () => {
     expect(mockReplies).toHaveBeenCalledWith(expect.objectContaining({ ts: '1' }));
   });
 
+  it('should sanitize slack messages correctly', () => {
+    const text = 'Hello <@U123>! Check <#C123|general> and <!here>.';
+    const sanitized = slackService.sanitizeMessage(text);
+
+    expect(sanitized).toBe('Hello @U123! Check #general and @here.');
+  });
+
   it('should throw error if integration not found', async () => {
     prisma.slackIntegration.findUnique.mockResolvedValue(null);
 
