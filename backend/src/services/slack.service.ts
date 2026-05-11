@@ -51,4 +51,28 @@ export class SlackService {
     });
     return result.messages || [];
   }
+
+  async syncChannelHistory(channelId: string, oldest?: string) {
+    const client = await this.getClient();
+    let allMessages: any[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const result: any = await client.conversations.history({
+        channel: channelId,
+        oldest,
+        cursor,
+        limit: 100,
+      });
+
+      if (result.ok) {
+        allMessages = allMessages.concat(result.messages || []);
+        cursor = result.response_metadata?.next_cursor;
+      } else {
+        throw new Error(`Slack API Error: ${result.error}`);
+      }
+    } while (cursor);
+
+    return allMessages;
+  }
 }

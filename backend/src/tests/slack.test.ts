@@ -87,6 +87,30 @@ describe('SlackService', () => {
     expect(messages[1].text).toBe('reply');
   });
 
+  it('should sync channel history with pagination', async () => {
+    prisma.slackIntegration.findUnique.mockResolvedValue({
+      accessToken: 'slack-token-123',
+    });
+
+    mockHistory
+      .mockResolvedValueOnce({
+        ok: true,
+        messages: [{ ts: '1', text: 'm1' }],
+        response_metadata: { next_cursor: 'c1' },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        messages: [{ ts: '2', text: 'm2' }],
+      });
+
+    const messages = await slackService.syncChannelHistory('C123');
+
+    expect(messages).toHaveLength(2);
+    expect(messages[0].text).toBe('m1');
+    expect(messages[1].text).toBe('m2');
+    expect(mockHistory).toHaveBeenCalledTimes(2);
+  });
+
   it('should throw error if integration not found', async () => {
     prisma.slackIntegration.findUnique.mockResolvedValue(null);
 
