@@ -104,4 +104,38 @@ export class JiraService {
 
     return data;
   }
+
+  async generateIssueUrl(issueKey: string) {
+    let { cloudId, accessToken, refreshToken } = await this.getTokens();
+    
+    const fetchResources = async (token: string) => {
+      const response = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+      return response;
+    };
+
+    let response = await fetchResources(accessToken);
+
+    if (response.status === 401 && refreshToken) {
+      accessToken = await this.refreshAccessToken(refreshToken);
+      response = await fetchResources(accessToken);
+    }
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch JIRA accessible resources');
+    }
+
+    const resources = await response.json() as any[];
+    const resource = resources.find(r => r.id === cloudId);
+    
+    if (!resource) {
+      throw new Error('JIRA resource not found');
+    }
+
+    return `${resource.url}/browse/${issueKey}`;
+  }
 }
