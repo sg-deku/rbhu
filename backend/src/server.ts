@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+
+dotenv.config({ path: '../.env' });
+
 import rateLimit from 'express-rate-limit';
 
 import swaggerUi from 'swagger-ui-express';
@@ -9,14 +12,14 @@ import swaggerJsdoc from 'swagger-jsdoc';
 
 
 import { connectDB } from './config/database';
+import passport from './config/oauth';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import searchRoutes from './routes/search.routes';
 import slackRoutes from './routes/slack.routes';
 import jiraRoutes from './routes/jira.routes';
+import oauthRoutes from './routes/oauth.routes';
 
-
-dotenv.config();
 
 const app = express();
 
@@ -27,6 +30,7 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 
 
 // Rate Limiting
@@ -54,6 +58,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/slack', slackRoutes);
 app.use('/api/jira', jiraRoutes);
+app.use('/api/oauth', oauthRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

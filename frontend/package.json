@@ -1,6 +1,7 @@
 {
   "name": "rbhu-frontend",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -13,7 +14,6 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "framer-motion": "latest",
-    "next": "latest",
     "postcss": "latest",
     "react": "latest",
     "react-dom": "latest",
@@ -24,6 +24,7 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.0.0",
