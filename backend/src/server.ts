@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+
+dotenv.config({ path: '../.env' });
+
 import rateLimit from 'express-rate-limit';
 
 import swaggerUi from 'swagger-ui-express';
@@ -17,8 +20,6 @@ import slackRoutes from './routes/slack.routes';
 import jiraRoutes from './routes/jira.routes';
 import oauthRoutes from './routes/oauth.routes';
 
-
-dotenv.config({ path: '../.env' });
 
 const app = express();
 
