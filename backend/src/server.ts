@@ -12,6 +12,8 @@ import { connectDB } from './config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import searchRoutes from './routes/search.routes';
+import slackRoutes from './routes/slack.routes';
+import jiraRoutes from './routes/jira.routes';
 
 
 dotenv.config();
@@ -50,6 +52,8 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/slack', slackRoutes);
+app.use('/api/jira', jiraRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
