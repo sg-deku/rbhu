@@ -20,7 +20,7 @@ Do not make assumptions on important decisions — get clarification first.
 
 ### [x] Step: Implement RB-42: Create search input with autocomplete
 ### [x] Step: Implement RB-43: Build Answer View component
-### [ ] Step: Implement RB-44: Create Source Sidebar
+### [x] Step: Implement RB-44: Create Source Sidebar
 ### [ ] Step: Implement RB-45: Implement Query History
 ### [ ] Step: Implement RB-46: Integrate real-time streaming
 <!-- chat-id: 7e08fcea-391b-4115-be24-d81fb8253012 -->
