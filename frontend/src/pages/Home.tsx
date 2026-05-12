@@ -32,15 +32,31 @@ const Home = () => {
     setSources([])
     saveToHistory(query)
     
-    try {
-      const data = await api.search.query(query)
-      setAnswer(data.answer)
-      setSources(data.sources || [])
-    } catch (err) {
-      console.error('Search failed', err)
-      setAnswer('Sorry, something went wrong. Please try again.')
-    } finally {
+    // Using SSE for real-time streaming
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+    const eventSource = new EventSource(`${API_URL}/search/stream?query=${encodeURIComponent(query)}`)
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      
+      if (data.chunk) {
+        setIsLoading(false)
+        setAnswer((prev) => prev + data.chunk)
+      }
+
+      if (data.done) {
+        setSources(data.sources || [])
+        eventSource.close()
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('SSE error:', err)
+      eventSource.close()
       setIsLoading(false)
+      if (!answer) {
+        setAnswer('Sorry, something went wrong. Please try again.')
+      }
     }
   }
 

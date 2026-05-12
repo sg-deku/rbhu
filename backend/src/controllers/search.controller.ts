@@ -46,3 +46,33 @@ The real implementation will stream the answer in real-time.`;
     res.status(500).json({ error: 'Search failed' });
   }
 };
+
+export const searchStream = async (req: Request, res: Response) => {
+  const { query } = req.query;
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Query is required' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const fullAnswer = `This is a streamed answer for: **${query}**.
+    
+It demonstrates real-time capabilities by sending chunks of text sequentially. 
+Markdown is fully supported and rendered as the text arrives.
+
+Hope this helps!`;
+
+  const chunks = fullAnswer.split(' ');
+  
+  for (const chunk of chunks) {
+    res.write(`data: ${JSON.stringify({ chunk: chunk + ' ' })}\n\n`);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+  }
+
+  res.write(`data: ${JSON.stringify({ done: true, sources: [
+    { id: '1', title: 'Streamed Source 1', snippet: 'Content from stream...', url: '#' }
+  ] })}\n\n`);
+  res.end();
+};

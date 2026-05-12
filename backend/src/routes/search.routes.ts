@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSuggestions, searchQuery } from '../controllers/search.controller';
+import { getSuggestions, searchQuery, searchStream } from '../controllers/search.controller';
 
 const router = Router();
 
@@ -39,5 +39,22 @@ router.get('/suggestions', getSuggestions);
  *         description: Search results and answer
  */
 router.post('/query', searchQuery);
+
+/**
+ * @swagger
+ * /api/search/stream:
+ *   get:
+ *     summary: Stream search results using SSE
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: SSE stream
+ */
+router.get('/stream', searchStream);
 
 export default router;

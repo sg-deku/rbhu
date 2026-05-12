@@ -19,9 +19,27 @@ describe('Search API', () => {
     expect(res.body).toContain('Test Suggestion');
   });
 
-  it('should return 400 if query is missing', async () => {
+  it('should return 400 if query is missing for suggestions', async () => {
     await request(app)
       .get('/api/search/suggestions')
       .expect(400);
+  });
+
+  it('should submit query', async () => {
+    const res = await request(app)
+      .post('/api/search/query')
+      .send({ query: 'test' })
+      .expect(200);
+    
+    expect(res.body.answer).toBeDefined();
+    expect(res.body.sources).toBeDefined();
+  });
+
+  it('should stream results', async () => {
+    const res = await request(app)
+      .get('/api/search/stream?query=test')
+      .expect(200);
+    
+    expect(res.header['content-type']).toBe('text/event-stream');
   });
 });
