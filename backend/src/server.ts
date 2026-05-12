@@ -16,7 +16,7 @@ import slackRoutes from './routes/slack.routes';
 import jiraRoutes from './routes/jira.routes';
 
 
-dotenv.config();
+dotenv.config({ path: '../.env' });
 
 const app = express();
 
