@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSuggestions } from '../controllers/search.controller';
+import { getSuggestions, searchQuery } from '../controllers/search.controller';
 
 const router = Router();
 
@@ -19,5 +19,25 @@ const router = Router();
  *         description: List of suggestions
  */
 router.get('/suggestions', getSuggestions);
+
+/**
+ * @swagger
+ * /api/search/query:
+ *   post:
+ *     summary: Submit a search query
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Search results and answer
+ */
+router.post('/query', searchQuery);
 
 export default router;

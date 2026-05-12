@@ -1,12 +1,27 @@
 import React, { useState } from 'react'
 import SearchInput from '../components/SearchInput'
+import AnswerView from '../components/AnswerView'
+import { api } from '../services/api'
 
 const Home = () => {
   const [currentQuery, setCurrentQuery] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setCurrentQuery(query)
-    console.log('Searching for:', query)
+    setIsLoading(true)
+    setAnswer('')
+    
+    try {
+      const data = await api.search.query(query)
+      setAnswer(data.answer)
+    } catch (err) {
+      console.error('Search failed', err)
+      setAnswer('Sorry, something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -27,12 +42,21 @@ const Home = () => {
       </div>
 
       {currentQuery && (
-        <div className="mt-12">
-          {/* AnswerView and SourceSidebar will go here */}
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+        <div className="mt-12 flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <AnswerView answer={answer} isLoading={isLoading} />
+          </div>
+          {/* SourceSidebar will go here */}
+          <div className="w-full md:w-80">
+            {isLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </div>
+            ) : (
+              <div className="text-gray-400 text-sm">Sources will appear here</div>
+            )}
           </div>
         </div>
       )}
@@ -40,5 +64,5 @@ const Home = () => {
   )
 }
 
-export default Home
+export default Home;
 

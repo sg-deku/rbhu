@@ -18,7 +18,7 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Implement RB-42: Create search input with autocomplete
+### [x] Step: Implement RB-42: Create search input with autocomplete
 ### [ ] Step: Implement RB-43: Build Answer View component
 ### [ ] Step: Implement RB-44: Create Source Sidebar
 ### [ ] Step: Implement RB-45: Implement Query History
