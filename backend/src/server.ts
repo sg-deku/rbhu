@@ -71,13 +71,14 @@ app.use((err: any, req: any, res: any, next: any) => {
 
 // Start Server
 const startServer = async () => {
-  await connectDB();
+  if (process.env.NODE_ENV !== 'test') {
+    await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(`🧭 rbhu server running on port ${PORT}`);
-    console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
-    
-  });
+    app.listen(PORT, () => {
+      console.log(`🧭 rbhu server running on port ${PORT}`);
+      console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
+    });
+  }
 };
 
 startServer();

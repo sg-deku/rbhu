@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "uvx",
+      "args": ["mcp-atlassian"],
+      "env": {
+        "JIRA_URL": "https://uweheldt.atlassian.net",
+        "JIRA_USERNAME": "${JIRA_EMAIL}",
+        "JIRA_TOKEN": "${JIRA_API_TOKEN}"
+      }
+    },
+    "gitlab": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-gitlab"],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_TOKEN}",
+        "GITLAB_API_URL": "https://gitlab.com/api/v4"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${PWD}"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "comment": "Fetch up-to-date library docs during coding sessions"
+    }
+  },
+  "_comment": "Team members each maintain their own JIRA_EMAIL, JIRA_API_TOKEN, and GITLAB_TOKEN in their local shell environment. See docs/mcp-setup.md for the setup guide. Do NOT commit tokens to this file."
+}

@@ -1,0 +1,15 @@
+{
+  "jira": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-jira"
+    ],
+    "env": {
+      "JIRA_BASE_URL": "https://sushmitghosh.atlassian.net",
+      "JIRA_USER_EMAIL": "sushmit.ghosh@icloud.com",
+      "JIRA_API_TOKEN": "ATATT3xFfGF0bRweNre33KWCWkn3gPhJ6DafVhhBBf4hmf2Y1FDyiB-bNhFSAjcEMEzkkrLj6J3NvesT4L8YZuZWP5wTJsUAOfIoW4B3TqZa27h-8y17N7Xd_8ZzFXU67iKc_pvhFoD9HuyI2A_-oBvg0RFkummQr31HL9fOk8djSVQHE32yT9o=C7AEE3DF"
+    },
+    "type": "stdio"
+  }
+}

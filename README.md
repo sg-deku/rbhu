@@ -28,14 +28,14 @@ npm run prisma:migrate
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /health | Health check |
-| POST | /api/auth/register | Register |
-| POST | /api/auth/login | Login |
-| GET | /api/auth/profile | Profile |
-| GET | /api/users | All users |
-| POST | /api/payment/create-order | Payment |
+| Method | Endpoint                  | Description  |
+|--------|---------------------------|--------------|
+| GET    | /health                   | Health check |
+| POST   | /api/auth/register        | Register     |
+| POST   | /api/auth/login           | Login        |
+| GET    | /api/auth/profile         | Profile      |
+| GET    | /api/users                | All users    |
+| POST   | /api/payment/create-order | Payment      |
 
 
 📚 **Swagger:** http://localhost:5000/api/docs
