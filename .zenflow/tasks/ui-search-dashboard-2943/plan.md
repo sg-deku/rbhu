@@ -22,7 +22,7 @@ Do not make assumptions on important decisions — get clarification first.
 ### [x] Step: Implement RB-43: Build Answer View component
 ### [x] Step: Implement RB-44: Create Source Sidebar
 ### [x] Step: Implement RB-45: Implement Query History
-### [ ] Step: Implement RB-46: Integrate real-time streaming
+### [x] Step: Implement RB-46: Integrate real-time streaming
 <!-- chat-id: 7e08fcea-391b-4115-be24-d81fb8253012 -->
 
 **Debug requests, questions, and investigations:** answer or investigate first. Do not create a plan upfront — the user needs an answer, not a plan. A plan may become relevant later once the investigation reveals what needs to change.
