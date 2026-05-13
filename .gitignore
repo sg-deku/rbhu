@@ -11,3 +11,4 @@ coverage/
 uploads/
 !uploads/.gitkeep
 prisma/*.db
+.zencoder/
