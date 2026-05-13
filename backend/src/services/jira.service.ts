@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { refreshAtlassianToken } from '../config/atlassian.auth';
 
 const prisma = new PrismaClient();
 
@@ -13,8 +14,8 @@ export class JiraService {
   }
 
   private async getTokens() {
-    const integration = await prisma.jiraIntegration.findUnique({
-      where: { userId: this.userId },
+    const integration = await prisma.atlassianIntegration.findFirst({
+      where: { userId: this.userId, jiraEnabled: true },
     });
 
     if (!integration) {
@@ -25,32 +26,25 @@ export class JiraService {
   }
 
   private async refreshAccessToken(refreshToken: string) {
-    const response = await fetch('https://auth.atlassian.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'refresh_token',
-        client_id: JIRA_CLIENT_ID,
-        client_secret: JIRA_CLIENT_SECRET,
-        refresh_token: refreshToken,
-      }),
+    const tokens = await refreshAtlassianToken(
+      refreshToken,
+      JIRA_CLIENT_ID!,
+      JIRA_CLIENT_SECRET!,
+    );
+
+    const integration = await prisma.atlassianIntegration.findFirst({
+      where: { userId: this.userId, jiraEnabled: true },
     });
 
-    const data = await response.json() as any;
-
-    if (!response.ok) {
-      throw new Error('Failed to refresh JIRA access token');
-    }
-
-    await prisma.jiraIntegration.update({
-      where: { userId: this.userId },
+    await prisma.atlassianIntegration.update({
+      where: { id: integration!.id },
       data: {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token || refreshToken,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
       },
     });
 
-    return data.access_token;
+    return tokens.accessToken;
   }
 
   private async backoff(seconds: number) {
