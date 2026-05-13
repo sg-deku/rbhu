@@ -12,9 +12,13 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["vite/client", "vitest/globals"]
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/__tests__"
   ]
 }

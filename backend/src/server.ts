@@ -11,6 +11,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { connectDB } from './config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import integrationRoutes from './routes/integration.routes';
 
 
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

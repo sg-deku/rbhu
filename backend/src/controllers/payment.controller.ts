@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { Request, Response } from 'express';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' as any });
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {

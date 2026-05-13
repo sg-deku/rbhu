@@ -7,3 +7,6 @@ export interface IUser {
   role: 'user' | 'admin';
   createdAt: Date;
 }
+
+const User: any = {};
+export default User;
