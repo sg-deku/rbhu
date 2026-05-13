@@ -142,7 +142,7 @@ Export TypeScript interfaces `AtlassianTokenSet` and `AtlassianSite`.
 
 ### Phase 1 — RB-27: Confluence OAuth2 Flow
 
-#### [ ] Task 1.1 — Implement Confluence OAuth2 controller and routes
+#### [x] Task 1.1 — Implement Confluence OAuth2 controller and routes
 
 **Files created:** `backend/src/controllers/confluence.controller.ts`, `backend/src/routes/confluence.routes.ts`
 **File changed:** `backend/src/server.ts`

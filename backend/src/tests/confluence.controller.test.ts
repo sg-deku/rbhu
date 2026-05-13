@@ -3,6 +3,7 @@ import app from '../server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { exchangeAtlassianCode, getAtlassianSites } from '../config/atlassian.auth';
+import { ConfluenceService } from '../services/confluence.service';
 
 jest.mock('@prisma/client', () => {
   const mPrisma = {
@@ -19,6 +20,8 @@ jest.mock('../config/atlassian.auth', () => ({
   exchangeAtlassianCode: jest.fn(),
   getAtlassianSites: jest.fn(),
 }));
+
+jest.mock('../services/confluence.service');
 
 const prisma = new PrismaClient() as any;
 
@@ -130,6 +133,63 @@ describe('Confluence Controller', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.message).toContain('Invalid cloudId');
+    });
+  });
+
+  describe('Space and Content Fetching', () => {
+    beforeEach(() => {
+      (ConfluenceService as jest.Mock).mockImplementation(() => ({
+        getSpaces: jest.fn().mockResolvedValue([{ id: 'space-1', name: 'Space 1' }]),
+        getPageTree: jest.fn().mockResolvedValue([{ id: 'page-1', title: 'Page 1' }]),
+        getBlogPosts: jest.fn().mockResolvedValue([{ id: 'blog-1', title: 'Blog 1' }]),
+      }));
+    });
+
+    it('should get spaces', async () => {
+      const res = await request(app)
+        .get('/api/confluence/spaces')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe('space-1');
+    });
+
+    it('should get page tree', async () => {
+      const res = await request(app)
+        .get('/api/confluence/spaces/space-1/pages')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe('page-1');
+    });
+
+    it('should get blog posts', async () => {
+      const res = await request(app)
+        .get('/api/confluence/spaces/space-1/blogposts')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe('blog-1');
+    });
+
+    it('should handle service errors', async () => {
+      (ConfluenceService as jest.Mock).mockImplementation(() => ({
+        getSpaces: jest.fn().mockRejectedValue(new Error('API Failure')),
+      }));
+
+      const res = await request(app)
+        .get('/api/confluence/spaces')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(500);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('API Failure');
     });
   });
 });

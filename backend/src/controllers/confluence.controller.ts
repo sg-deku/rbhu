@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { exchangeAtlassianCode, getAtlassianSites } from '../config/atlassian.auth';
+import { ConfluenceService } from '../services/confluence.service';
 
 const prisma = new PrismaClient();
 
@@ -106,5 +107,40 @@ export const selectConfluenceSite = async (req: any, res: Response) => {
   } catch (error) {
     console.error('Select Confluence Site Error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getSpaces = async (req: any, res: Response) => {
+  try {
+    const confluenceService = new ConfluenceService(req.userId);
+    const spaces = await confluenceService.getSpaces();
+    res.json({ success: true, data: spaces });
+  } catch (error: any) {
+    console.error('Get Spaces Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getPageTree = async (req: any, res: Response) => {
+  const { spaceId } = req.params;
+  try {
+    const confluenceService = new ConfluenceService(req.userId);
+    const tree = await confluenceService.getPageTree(spaceId);
+    res.json({ success: true, data: tree });
+  } catch (error: any) {
+    console.error('Get Page Tree Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getBlogPosts = async (req: any, res: Response) => {
+  const { spaceId } = req.params;
+  try {
+    const confluenceService = new ConfluenceService(req.userId);
+    const blogPosts = await confluenceService.getBlogPosts(spaceId);
+    res.json({ success: true, data: blogPosts });
+  } catch (error: any) {
+    console.error('Get Blog Posts Error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
