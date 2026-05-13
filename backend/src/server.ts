@@ -1,4 +1,5 @@
 import express from 'express';
+import session from 'express-session';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -18,6 +19,7 @@ import userRoutes from './routes/user.routes';
 import searchRoutes from './routes/search.routes';
 import slackRoutes from './routes/slack.routes';
 import jiraRoutes from './routes/jira.routes';
+import confluenceRoutes from './routes/confluence.routes';
 import oauthRoutes from './routes/oauth.routes';
 
 
@@ -30,6 +32,12 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'rbhu-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
 app.use(passport.initialize());
 
 
@@ -58,6 +66,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/slack', slackRoutes);
 app.use('/api/jira', jiraRoutes);
+app.use('/api/confluence', confluenceRoutes);
 app.use('/api/oauth', oauthRoutes);
 
 // Health Check

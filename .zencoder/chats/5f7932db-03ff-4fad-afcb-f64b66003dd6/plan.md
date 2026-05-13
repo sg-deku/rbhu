@@ -56,7 +56,7 @@ Save to `/Users/sushmitghosh/Desktop/Projects/rbhu/.zencoder/chats/5f7932db-03ff
 
 ### Phase 0 — Chore: Dependencies, Shared Auth, and Schema Migration
 
-#### [ ] Task 0.1 — Install new dependencies
+#### [x] Task 0.1 — Install new dependencies
 
 - Install `turndown` and `@types/turndown` in `backend/`:
   ```bash
@@ -69,7 +69,7 @@ Save to `/Users/sushmitghosh/Desktop/Projects/rbhu/.zencoder/chats/5f7932db-03ff
 
 ---
 
-#### [ ] Task 0.2 — Migrate Prisma schema: replace `JiraIntegration` with `AtlassianIntegration`
+#### [x] Task 0.2 — Migrate Prisma schema: replace `JiraIntegration` with `AtlassianIntegration`
 
 **Files changed:** `backend/prisma/schema.prisma`
 
@@ -107,7 +107,7 @@ Save to `/Users/sushmitghosh/Desktop/Projects/rbhu/.zencoder/chats/5f7932db-03ff
 
 ---
 
-#### [ ] Task 0.3 — Create `atlassian.auth.ts` shared helper
+#### [x] Task 0.3 — Create `atlassian.auth.ts` shared helper
 
 **File created:** `backend/src/config/atlassian.auth.ts`
 
@@ -124,7 +124,7 @@ Export TypeScript interfaces `AtlassianTokenSet` and `AtlassianSite`.
 
 ---
 
-#### [ ] Task 0.4 — Update `JiraService` and `JiraController` to use `AtlassianIntegration`
+#### [x] Task 0.4 — Update `JiraService` and `JiraController` to use `AtlassianIntegration`
 
 **Files changed:** `backend/src/services/jira.service.ts`, `backend/src/controllers/jira.controller.ts`, `backend/src/config/oauth.ts`
 
