@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { refreshAtlassianToken } from '../config/atlassian.auth';
+import { transformToMarkdown } from '../utils/confluence.transformer';
+import { indexDocument, createIndex } from './search.service';
 
 const prisma = new PrismaClient();
 
@@ -28,6 +30,28 @@ export interface BlogPostSummary {
   title: string;
   createdAt: string;
   version: number;
+}
+
+export interface ConfluenceComment {
+  id: string;
+  type: 'inline' | 'footer';
+  body: string;
+  author: string;
+  createdAt: string;
+}
+
+export interface ConfluencePageContent {
+  id: string;
+  title: string;
+  type: 'page' | 'blogpost';
+  spaceId: string;
+  parentId: string | null;
+  version: number;
+  rawBody: string;
+  markdown: string;
+  labels: string[];
+  comments: ConfluenceComment[];
+  fetchedAt: string;
 }
 
 export class ConfluenceService {
@@ -190,5 +214,180 @@ export class ConfluenceService {
       createdAt: post.createdAt,
       version: post.version?.number || 1,
     }));
+  }
+
+  private async getLabels(type: 'pages' | 'blogposts', id: string): Promise<string[]> {
+    const data = await this.confluenceFetch(`/wiki/api/v2/${type}/${id}/labels`);
+    return data.results.map((label: any) => label.name);
+  }
+
+  private async getComments(type: 'pages' | 'blogposts', id: string): Promise<ConfluenceComment[]> {
+    const comments: ConfluenceComment[] = [];
+
+    // Footer comments for both pages and blog posts
+    const footerData = await this.confluenceFetch(`/wiki/api/v2/${type}/${id}/footer-comments?body-format=storage`);
+    footerData.results.forEach((comment: any) => {
+      comments.push({
+        id: comment.id,
+        type: 'footer',
+        body: transformToMarkdown(comment.body?.storage?.value || ''),
+        author: comment.authorId, // Simplified for now, could fetch full user info
+        createdAt: comment.createdAt,
+      });
+    });
+
+    // Inline comments only for pages
+    if (type === 'pages') {
+      const inlineData = await this.confluenceFetch(`/wiki/api/v2/pages/${id}/inline-comments?body-format=storage`);
+      inlineData.results.forEach((comment: any) => {
+        comments.push({
+          id: comment.id,
+          type: 'inline',
+          body: transformToMarkdown(comment.body?.storage?.value || ''),
+          author: comment.authorId,
+          createdAt: comment.createdAt,
+        });
+      });
+    }
+
+    return comments;
+  }
+
+  private async resolvePageLinks(markdown: string): Promise<string> {
+    const integration = await this.getIntegration();
+    const siteUrl = integration.siteUrl;
+    
+    // Replace relative links like [title](/wiki/spaces/KEY/pages/123) with absolute siteUrl
+    return markdown.replace(/\[([^\]]+)\]\((\/wiki\/[^)]+)\)/g, `[$1](${siteUrl}$2)`);
+  }
+
+  private async resolveConfluencePagePlaceholders(markdown: string, spaceId: string): Promise<string> {
+    const integration = await this.getIntegration();
+    const siteUrl = integration.siteUrl;
+
+    const placeholders = markdown.match(/\[([^\]]+)\]\(([^)]+)\)/g);
+    if (!placeholders) return markdown;
+
+    let resolvedMarkdown = markdown;
+
+    for (const placeholder of placeholders) {
+      const match = placeholder.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (match && match[1] === match[2]) {
+        const title = match[1];
+        try {
+          // Search for the page by title in the same space
+          const data = await this.confluenceFetch(`/wiki/api/v2/pages?title=${encodeURIComponent(title)}&spaceId=${spaceId}&limit=1`);
+          if (data.results && data.results.length > 0) {
+            const pageId = data.results[0].id;
+            const spaceKey = data.results[0].spaceId; // Actually the API returns spaceId as ID, but for URLs we might need key if it's available. 
+            // V2 API returns spaceId. Let's stick to siteUrl/wiki/spaces/ID/pages/ID or siteUrl/wiki/pages/ID
+            resolvedMarkdown = resolvedMarkdown.replace(placeholder, `[${title}](${siteUrl}/wiki/pages/${pageId})`);
+          } else {
+            // Degrade to plain text if not found
+            resolvedMarkdown = resolvedMarkdown.replace(placeholder, title);
+          }
+        } catch (error) {
+          resolvedMarkdown = resolvedMarkdown.replace(placeholder, title);
+        }
+      }
+    }
+
+    return resolvedMarkdown;
+  }
+
+  private async ensureIndexCreated() {
+    await createIndex('confluence-content', {
+      properties: {
+        title: { type: 'text' },
+        type: { type: 'keyword' },
+        spaceId: { type: 'keyword' },
+        markdown: { type: 'text' },
+        labels: { type: 'keyword' },
+        userId: { type: 'keyword' },
+        fetchedAt: { type: 'date' },
+      },
+    });
+  }
+
+  async getPage(pageId: string): Promise<ConfluencePageContent> {
+    const data = await this.confluenceFetch(`/wiki/api/v2/pages/${pageId}?body-format=storage`);
+    const labels = await this.getLabels('pages', pageId);
+    const comments = await this.getComments('pages', pageId);
+    
+    let markdown = transformToMarkdown(data.body.storage.value);
+    
+    // Append comments section
+    if (comments.length > 0) {
+      markdown += '\n\n## Comments\n';
+      comments.forEach(comment => {
+        markdown += `\n### Comment by ${comment.author} (${comment.type})\n${comment.body}\n`;
+      });
+    }
+
+    markdown = await this.resolvePageLinks(markdown);
+    markdown = await this.resolveConfluencePagePlaceholders(markdown, data.spaceId);
+
+    const content: ConfluencePageContent = {
+      id: data.id,
+      title: data.title,
+      type: 'page',
+      spaceId: data.spaceId,
+      parentId: data.parentId,
+      version: data.version?.number || 1,
+      rawBody: data.body.storage.value,
+      markdown,
+      labels,
+      comments,
+      fetchedAt: new Date().toISOString(),
+    };
+
+    await this.ensureIndexCreated();
+    await indexDocument('confluence-content', content.id, {
+      ...content,
+      userId: this.userId,
+    });
+
+    return content;
+  }
+
+  async getBlogPost(blogpostId: string): Promise<ConfluencePageContent> {
+    const data = await this.confluenceFetch(`/wiki/api/v2/blogposts/${blogpostId}?body-format=storage`);
+    const labels = await this.getLabels('blogposts', blogpostId);
+    const comments = await this.getComments('blogposts', blogpostId);
+
+    let markdown = transformToMarkdown(data.body.storage.value);
+
+    if (comments.length > 0) {
+      markdown += '\n\n## Comments\n';
+      comments.forEach(comment => {
+        markdown += `\n### Comment by ${comment.author} (${comment.type})\n${comment.body}\n`;
+      });
+    }
+
+    markdown = await this.resolvePageLinks(markdown);
+    // Blog posts might not have same hierarchy placeholders but we can still resolve them if they exist
+    markdown = await this.resolveConfluencePagePlaceholders(markdown, data.spaceId);
+
+    const content: ConfluencePageContent = {
+      id: data.id,
+      title: data.title,
+      type: 'blogpost',
+      spaceId: data.spaceId,
+      parentId: null,
+      version: data.version?.number || 1,
+      rawBody: data.body.storage.value,
+      markdown,
+      labels,
+      comments,
+      fetchedAt: new Date().toISOString(),
+    };
+
+    await this.ensureIndexCreated();
+    await indexDocument('confluence-content', content.id, {
+      ...content,
+      userId: this.userId,
+    });
+
+    return content;
   }
 }

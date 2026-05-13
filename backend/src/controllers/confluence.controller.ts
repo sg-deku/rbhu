@@ -144,3 +144,27 @@ export const getBlogPosts = async (req: any, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getPage = async (req: any, res: Response) => {
+  const { pageId } = req.params;
+  try {
+    const confluenceService = new ConfluenceService(req.userId);
+    const content = await confluenceService.getPage(pageId);
+    res.json({ success: true, data: content });
+  } catch (error: any) {
+    console.error('Get Page Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getBlogPost = async (req: any, res: Response) => {
+  const { blogpostId } = req.params;
+  try {
+    const confluenceService = new ConfluenceService(req.userId);
+    const content = await confluenceService.getBlogPost(blogpostId);
+    res.json({ success: true, data: content });
+  } catch (error: any) {
+    console.error('Get Blog Post Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

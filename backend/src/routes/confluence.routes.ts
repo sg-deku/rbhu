@@ -6,7 +6,9 @@ import {
   selectConfluenceSite,
   getSpaces,
   getPageTree,
-  getBlogPosts
+  getBlogPosts,
+  getPage,
+  getBlogPost
 } from '../controllers/confluence.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
@@ -19,5 +21,7 @@ router.post('/select-site', authMiddleware, selectConfluenceSite);
 router.get('/spaces', authMiddleware, getSpaces);
 router.get('/spaces/:spaceId/pages', authMiddleware, getPageTree);
 router.get('/spaces/:spaceId/blogposts', authMiddleware, getBlogPosts);
+router.get('/pages/:pageId', authMiddleware, getPage);
+router.get('/blogposts/:blogpostId', authMiddleware, getBlogPost);
 
 export default router;

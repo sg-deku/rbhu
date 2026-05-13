@@ -233,7 +233,7 @@ router.get('/spaces/:spaceId/blogposts', authMiddleware, getBlogPosts);
 
 ### Phase 3 — RB-30: HTML/Storage Format to Markdown Transformer
 
-#### [ ] Task 3.1 — Implement `confluence.transformer.ts`
+#### [x] Task 3.1 — Implement `confluence.transformer.ts`
 
 **File created:** `backend/src/utils/confluence.transformer.ts`
 

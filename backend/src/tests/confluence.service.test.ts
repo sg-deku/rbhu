@@ -1,6 +1,7 @@
 import { ConfluenceService } from '../services/confluence.service';
 import { PrismaClient } from '@prisma/client';
 import { refreshAtlassianToken } from '../config/atlassian.auth';
+import { indexDocument, createIndex } from '../services/search.service';
 
 jest.mock('@prisma/client', () => {
   const mPrisma = {
@@ -14,6 +15,11 @@ jest.mock('@prisma/client', () => {
 
 jest.mock('../config/atlassian.auth', () => ({
   refreshAtlassianToken: jest.fn(),
+}));
+
+jest.mock('../services/search.service', () => ({
+  indexDocument: jest.fn(),
+  createIndex: jest.fn(),
 }));
 
 const prisma = new PrismaClient() as any;
@@ -212,5 +218,111 @@ describe('ConfluenceService', () => {
 
     expect(blogPosts).toHaveLength(1);
     expect(blogPosts[0].title).toBe('Blog 1');
+  });
+
+  describe('getPage and getBlogPost', () => {
+    beforeEach(() => {
+      prisma.atlassianIntegration.findFirst.mockResolvedValue({
+        accessToken: 'token-123',
+        cloudId: 'cloud-123',
+        siteUrl: 'https://site.atlassian.net'
+      });
+    });
+
+    it('should fetch a page with labels and comments and index it', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({ // getPage body
+          ok: true,
+          json: () => Promise.resolve({
+            id: 'page-1',
+            title: 'Page 1',
+            spaceId: 'space-1',
+            parentId: 'parent-1',
+            version: { number: 1 },
+            body: { storage: { value: '<p>Hello World</p>' } }
+          }),
+        })
+        .mockResolvedValueOnce({ // getLabels
+          ok: true,
+          json: () => Promise.resolve({ results: [{ name: 'label-1' }] }),
+        })
+        .mockResolvedValueOnce({ // getComments (footer)
+          ok: true,
+          json: () => Promise.resolve({
+            results: [{
+              id: 'comment-1',
+              authorId: 'user-1',
+              createdAt: '2023-01-01',
+              body: { storage: { value: '<p>Great page!</p>' } }
+            }]
+          }),
+        })
+        .mockResolvedValueOnce({ // getComments (inline)
+          ok: true,
+          json: () => Promise.resolve({ results: [] }),
+        });
+
+      const page = await confluenceService.getPage('page-1');
+
+      expect(page.id).toBe('page-1');
+      expect(page.labels).toContain('label-1');
+      expect(page.comments).toHaveLength(1);
+      expect(page.markdown).toContain('Hello World');
+      expect(page.markdown).toContain('## Comments');
+      expect(createIndex).toHaveBeenCalled();
+      expect(indexDocument).toHaveBeenCalledWith('confluence-content', 'page-1', expect.objectContaining({
+        title: 'Page 1',
+        userId: 'user-123'
+      }));
+    });
+
+    it('should fetch a blog post and index it', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({ // getBlogPost body
+          ok: true,
+          json: () => Promise.resolve({
+            id: 'blog-1',
+            title: 'Blog 1',
+            spaceId: 'space-1',
+            version: { number: 1 },
+            body: { storage: { value: '<p>Blog Post Content</p>' } }
+          }),
+        })
+        .mockResolvedValueOnce({ // getLabels
+          ok: true,
+          json: () => Promise.resolve({ results: [] }),
+        })
+        .mockResolvedValueOnce({ // getComments (footer)
+          ok: true,
+          json: () => Promise.resolve({ results: [] }),
+        });
+
+      const blogPost = await confluenceService.getBlogPost('blog-1');
+
+      expect(blogPost.id).toBe('blog-1');
+      expect(blogPost.type).toBe('blogpost');
+      expect(blogPost.markdown).toContain('Blog Post Content');
+      expect(indexDocument).toHaveBeenCalledWith('confluence-content', 'blog-1', expect.any(Object));
+    });
+
+    it('should resolve relative links', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({ // getPage body
+          ok: true,
+          json: () => Promise.resolve({
+            id: 'page-1',
+            title: 'Page 1',
+            spaceId: 'space-1',
+            body: { storage: { value: '<p><a href="/wiki/spaces/SPACE/pages/123">Link</a></p>' } }
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) }) // labels
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) }) // footer
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) }); // inline
+
+      const page = await confluenceService.getPage('page-1');
+
+      expect(page.markdown).toContain('https://site.atlassian.net/wiki/spaces/SPACE/pages/123');
+    });
   });
 });

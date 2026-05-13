@@ -142,6 +142,8 @@ describe('Confluence Controller', () => {
         getSpaces: jest.fn().mockResolvedValue([{ id: 'space-1', name: 'Space 1' }]),
         getPageTree: jest.fn().mockResolvedValue([{ id: 'page-1', title: 'Page 1' }]),
         getBlogPosts: jest.fn().mockResolvedValue([{ id: 'blog-1', title: 'Blog 1' }]),
+        getPage: jest.fn().mockResolvedValue({ id: 'page-1', title: 'Page 1', markdown: '# Hello' }),
+        getBlogPost: jest.fn().mockResolvedValue({ id: 'blog-1', title: 'Blog 1', markdown: '# Blog' }),
       }));
     });
 
@@ -176,6 +178,28 @@ describe('Confluence Controller', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].id).toBe('blog-1');
+    });
+
+    it('should get a page by id', async () => {
+      const res = await request(app)
+        .get('/api/confluence/pages/page-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe('page-1');
+      expect(res.body.data.markdown).toBe('# Hello');
+    });
+
+    it('should get a blog post by id', async () => {
+      const res = await request(app)
+        .get('/api/confluence/blogposts/blog-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe('blog-1');
+      expect(res.body.data.markdown).toBe('# Blog');
     });
 
     it('should handle service errors', async () => {
