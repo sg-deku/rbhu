@@ -191,7 +191,7 @@ CONFLUENCE_REDIRECT_URI=http://localhost:5000/api/confluence/callback
 
 ### Phase 2 — RB-28: Space and Page Hierarchy Discovery
 
-#### [ ] Task 2.1 — Implement `ConfluenceService` with space and hierarchy methods
+#### [x] Task 2.1 — Implement `ConfluenceService` with space and hierarchy methods
 
 **File created:** `backend/src/services/confluence.service.ts`
 
