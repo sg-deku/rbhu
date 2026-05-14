@@ -12,8 +12,9 @@ export const integrationService = {
     return data.data.authorizationUrl
   },
 
-  triggerSync: async (_provider: Provider): Promise<{ jobId: string; status: string }> => {
-    return Promise.resolve({ jobId: '', status: '' })
+  triggerSync: async (provider: Provider): Promise<{ jobId: string; status: string }> => {
+    const data = await api.post(`/integrations/${provider}/sync`, {})
+    return data.data
   },
 
   deleteIntegration: async (_provider: Provider): Promise<void> => {

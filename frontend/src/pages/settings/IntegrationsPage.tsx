@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useIntegrationsStore } from '../../stores/useIntegrationsStore'
 import IntegrationCard from '../../components/integrations/IntegrationCard'
@@ -15,9 +15,10 @@ interface ToastState {
 
 const IntegrationsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { integrations, loading, connectingProvider, fetchIntegrations, connect } = useIntegrationsStore()
+  const { integrations, loading, connectingProvider, syncingProviders, fetchIntegrations, connect, triggerSync } = useIntegrationsStore()
   const [connectingModalProvider, setConnectingModalProvider] = useState<Provider | null>(null)
   const [toast, setToast] = useState<ToastState | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     fetchIntegrations()
@@ -40,6 +41,28 @@ const IntegrationsPage = () => {
     }
   }, [])
 
+  useEffect(() => {
+    if (syncingProviders.size > 0) {
+      if (!pollingRef.current) {
+        pollingRef.current = setInterval(() => {
+          fetchIntegrations()
+        }, 10_000)
+      }
+    } else {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [syncingProviders.size])
+
   const handleConnect = (provider: Provider) => {
     setConnectingModalProvider(provider)
   }
@@ -52,6 +75,10 @@ const IntegrationsPage = () => {
 
   const handleModalCancel = () => {
     setConnectingModalProvider(null)
+  }
+
+  const handleSyncNow = async (provider: Provider) => {
+    await triggerSync(provider)
   }
 
   return (
@@ -73,9 +100,10 @@ const IntegrationsPage = () => {
                 integration={integration}
                 onConnect={handleConnect}
                 onDisconnect={() => {}}
-                onSyncNow={() => {}}
+                onSyncNow={handleSyncNow}
                 onConfigure={() => {}}
                 connectingProvider={connectingProvider}
+                syncingProviders={syncingProviders}
               />
             )
           })}

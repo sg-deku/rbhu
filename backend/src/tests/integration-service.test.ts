@@ -1,4 +1,4 @@
-import { getIntegrations, initiateOAuth, handleOAuthCallback } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus } from '../services/integration.service';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 
@@ -9,6 +9,7 @@ jest.mock('../config/database', () => ({
       findMany: jest.fn(),
       upsert: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     integrationActivity: {
       create: jest.fn(),
@@ -16,13 +17,19 @@ jest.mock('../config/database', () => ({
   },
 }));
 
+jest.mock('../services/integration-sync.service', () => ({
+  runSync: jest.fn(),
+}));
+
 jest.mock('axios');
 
 import prisma from '../config/database';
 import axios from 'axios';
+import { runSync } from '../services/integration-sync.service';
 
 const mockPrisma = prisma as any;
 const mockAxios = axios as any;
+const mockRunSync = runSync as jest.Mock;
 
 describe('Integration Service', () => {
   beforeEach(() => {
@@ -174,6 +181,65 @@ describe('Integration Service', () => {
       const decoded = verifyOAuthState(state);
       expect(decoded.userId).toBe('user-abc');
       expect(decoded.provider).toBe('confluence');
+    });
+  });
+
+  describe('syncIntegration', () => {
+    it('should set syncStatus to syncing immediately and return { jobId, status: queued }', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+      mockRunSync.mockResolvedValue({ syncedItemCount: 5 });
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+
+      const result = await syncIntegration('user-1', 'slack');
+
+      expect(mockPrisma.integration.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { syncStatus: 'syncing' } })
+      );
+      expect(result).toEqual({ jobId: 'int-1', status: 'queued' });
+    });
+
+    it('should throw when integration not found', async () => {
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+      await expect(syncIntegration('user-1', 'slack')).rejects.toThrow('Integration not found');
+    });
+  });
+
+  describe('getIntegrationStatus', () => {
+    it('should return status fields when integration exists', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        syncStatus: 'success',
+        lastSyncedAt: new Date('2026-05-13T09:00:00Z'),
+        syncedItemCount: 10,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+
+      const result = await getIntegrationStatus('user-1', 'slack');
+
+      expect(result).toEqual({
+        status: 'success',
+        lastSyncedAt: mockIntegration.lastSyncedAt,
+        syncedItemCount: 10,
+      });
+    });
+
+    it('should return null when integration not found', async () => {
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+      const result = await getIntegrationStatus('user-1', 'slack');
+      expect(result).toBeNull();
     });
   });
 });

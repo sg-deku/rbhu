@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getIntegrations, initiateOAuth, handleOAuthCallback } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus } from '../services/integration.service';
 import { verifyOAuthState } from '../utils/oauth-state';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
@@ -50,11 +50,26 @@ export const handleCallback = async (req: any, res: Response) => {
 };
 
 export const syncNow = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const result = await syncIntegration(req.userId, provider);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getStatus = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const result = await getIntegrationStatus(req.userId, provider);
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Integration not found' });
+    }
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const deleteIntegration = async (req: any, res: Response) => {

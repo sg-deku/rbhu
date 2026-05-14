@@ -12,6 +12,7 @@ import { connectDB } from './config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import integrationRoutes from './routes/integration.routes';
+import { startIntegrationScheduler } from './services/integration-scheduler';
 
 
 dotenv.config();
@@ -72,6 +73,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 // Start Server
 const startServer = async () => {
   await connectDB();
+  startIntegrationScheduler();
 
   app.listen(PORT, () => {
     console.log(`🧭 rbhu server running on port ${PORT}`);

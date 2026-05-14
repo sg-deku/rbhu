@@ -8,12 +8,21 @@ jest.mock('../config/database', () => ({
       findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
     integrationActivity: {
       create: jest.fn().mockResolvedValue({}),
     },
   },
   connectDB: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../services/integration-sync.service', () => ({
+  runSync: jest.fn().mockResolvedValue({ syncedItemCount: 3 }),
+}));
+
+jest.mock('../services/integration-scheduler', () => ({
+  startIntegrationScheduler: jest.fn(),
 }));
 
 jest.mock('axios');
@@ -124,6 +133,73 @@ describe('Integration Routes', () => {
 
       expect(res.status).toBe(302);
       expect(res.headers.location).toMatch(/connected=slack/);
+    });
+  });
+
+  describe('GET /api/integrations/:provider/status', () => {
+    it('should return 200 with status data when integration exists', async () => {
+      const token = makeToken();
+      const mockIntegration = {
+        id: 'int-1',
+        syncStatus: 'success',
+        lastSyncedAt: new Date('2026-05-13T09:00:00Z'),
+        syncedItemCount: 10,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+
+      const res = await request(app)
+        .get('/api/integrations/slack/status')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe('success');
+      expect(res.body.data.syncedItemCount).toBe(10);
+    });
+
+    it('should return 404 when integration not found', async () => {
+      const token = makeToken();
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/integrations/slack/status')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/integrations/:provider/sync', () => {
+    it('should return 200 with jobId and status queued', async () => {
+      const token = makeToken();
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+
+      const res = await request(app)
+        .post('/api/integrations/slack/sync')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.jobId).toBe('int-1');
+      expect(res.body.data.status).toBe('queued');
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app).post('/api/integrations/slack/sync');
+      expect(res.status).toBe(401);
     });
   });
 });

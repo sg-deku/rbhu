@@ -8,8 +8,9 @@ export const integrationService = {
         const data = await api.post(`/integrations/${provider}/connect`, {});
         return data.data.authorizationUrl;
     },
-    triggerSync: async (_provider) => {
-        return Promise.resolve({ jobId: '', status: '' });
+    triggerSync: async (provider) => {
+        const data = await api.post(`/integrations/${provider}/sync`, {});
+        return data.data;
     },
     deleteIntegration: async (_provider) => {
         return Promise.resolve();

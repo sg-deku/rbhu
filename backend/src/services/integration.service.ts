@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 import { getProviderConfig } from '../config/integrations';
+import { runSync } from './integration-sync.service';
 
 export interface IntegrationDTO {
   id: string;
@@ -159,4 +160,95 @@ export async function handleOAuthCallback(
   }
 
   return { userId, provider };
+}
+
+export async function syncIntegration(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence'
+): Promise<{ jobId: string; status: string }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    throw new Error('Integration not found');
+  }
+
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { syncStatus: 'syncing' },
+  });
+
+  runSync(integration as any)
+    .then(async ({ syncedItemCount }) => {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'success',
+          lastSyncedAt: new Date(),
+          syncedItemCount,
+        },
+      });
+      await prisma.integrationActivity.create({
+        data: {
+          integrationId: integration.id,
+          userId,
+          provider: provider as any,
+          eventType: 'sync_success',
+          message: `Sync completed for ${provider}`,
+          syncedItemCount,
+        },
+      });
+    })
+    .catch(async (err: Error) => {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: { syncStatus: 'failed' },
+      });
+      await prisma.integrationActivity.create({
+        data: {
+          integrationId: integration.id,
+          userId,
+          provider: provider as any,
+          eventType: 'sync_failed',
+          message: `Sync failed for ${provider}`,
+          detail: err.message,
+        },
+      });
+    });
+
+  return { jobId: integration.id, status: 'queued' };
+}
+
+export async function getIntegrationStatus(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence'
+): Promise<{ status: string; lastSyncedAt: Date | null; syncedItemCount: number | null } | null> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) return null;
+
+  return {
+    status: integration.syncStatus,
+    lastSyncedAt: integration.lastSyncedAt,
+    syncedItemCount: integration.syncedItemCount,
+  };
+}
+
+export async function syncAllIntegrations(): Promise<void> {
+  const integrations = await prisma.integration.findMany({
+    where: { status: 'connected' },
+  });
+
+  for (const integration of integrations) {
+    try {
+      await syncIntegration(
+        integration.userId,
+        integration.provider as 'jira' | 'slack' | 'confluence'
+      );
+    } catch {
+    }
+  }
 }
