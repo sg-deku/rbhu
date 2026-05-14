@@ -1,4 +1,8 @@
+import axios from 'axios';
 import prisma from '../config/database';
+import { encrypt, decrypt } from '../utils/encryption';
+import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
+import { getProviderConfig } from '../config/integrations';
 
 export interface IntegrationDTO {
   id: string;
@@ -34,4 +38,125 @@ export async function getIntegrations(userId: string): Promise<IntegrationDTO[]>
     orderBy: { createdAt: 'asc' },
   });
   return integrations.map(toDTO);
+}
+
+export async function initiateOAuth(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence'
+): Promise<{ authorizationUrl: string }> {
+  const state = generateOAuthState(userId, provider);
+  const config = getProviderConfig(provider);
+  const scopeStr = config.scopes.join('%20');
+
+  let url =
+    `${config.authorizationUrl}` +
+    `?client_id=${config.clientId}` +
+    `&redirect_uri=${encodeURIComponent(config.redirectUri)}` +
+    `&scope=${scopeStr}` +
+    `&response_type=code` +
+    `&state=${state}` +
+    `&prompt=consent`;
+
+  if (provider === 'jira' || provider === 'confluence') {
+    url += '&audience=api.atlassian.com';
+  }
+
+  return { authorizationUrl: url };
+}
+
+async function fetchAtlassianAccount(accessToken: string): Promise<{ accountName: string | null; accountEmail: string | null }> {
+  try {
+    const res = await axios.get('https://api.atlassian.com/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return {
+      accountName: res.data.name || null,
+      accountEmail: res.data.email || null,
+    };
+  } catch {
+    return { accountName: null, accountEmail: null };
+  }
+}
+
+export async function handleOAuthCallback(
+  code: string,
+  state: string
+): Promise<{ userId: string; provider: string }> {
+  const { userId, provider } = verifyOAuthState(state);
+  const config = getProviderConfig(provider as 'jira' | 'slack' | 'confluence');
+
+  const params = new URLSearchParams({
+    code,
+    grant_type: 'authorization_code',
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
+    redirect_uri: config.redirectUri,
+  });
+
+  const tokenRes = await axios.post(config.tokenUrl, params.toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+
+  const tokenData = tokenRes.data;
+  const rawAccessToken: string = tokenData.access_token;
+  const rawRefreshToken: string | undefined = tokenData.refresh_token;
+  const expiresIn: number | undefined = tokenData.expires_in;
+
+  const encryptedAccessToken = encrypt(rawAccessToken);
+  const encryptedRefreshToken = rawRefreshToken ? encrypt(rawRefreshToken) : null;
+  const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
+
+  let accountName: string | null = null;
+  let accountEmail: string | null = null;
+
+  if (provider === 'slack') {
+    accountName = tokenData.team?.name || null;
+    accountEmail = tokenData.authed_user?.id || null;
+  } else {
+    const account = await fetchAtlassianAccount(rawAccessToken);
+    accountName = account.accountName;
+    accountEmail = account.accountEmail;
+  }
+
+  await prisma.integration.upsert({
+    where: { userId_provider: { userId, provider: provider as any } },
+    create: {
+      userId,
+      provider: provider as any,
+      status: 'connected',
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      tokenExpiresAt,
+      accountName,
+      accountEmail,
+      syncStatus: 'idle',
+    },
+    update: {
+      status: 'connected',
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      tokenExpiresAt,
+      accountName,
+      accountEmail,
+      syncStatus: 'idle',
+    },
+  });
+
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider: provider as any } },
+  });
+
+  if (integration) {
+    await prisma.integrationActivity.create({
+      data: {
+        integrationId: integration.id,
+        userId,
+        provider: provider as any,
+        eventType: 'connected',
+        message: `Connected to ${provider}`,
+      },
+    });
+  }
+
+  return { userId, provider };
 }

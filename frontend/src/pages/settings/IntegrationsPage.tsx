@@ -1,38 +1,62 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useIntegrationsStore } from '../../stores/useIntegrationsStore'
 import IntegrationCard from '../../components/integrations/IntegrationCard'
+import ConnectModal from '../../components/integrations/ConnectModal'
+import Toast from '../../components/ui/Toast'
 import { Provider } from '../../types/integrations'
 
 const PROVIDERS: Provider[] = ['jira', 'slack', 'confluence']
 
+interface ToastState {
+  message: string
+  type: 'success' | 'error'
+}
+
 const IntegrationsPage = () => {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { integrations, loading, connectingProvider, fetchIntegrations, connect } = useIntegrationsStore()
+  const [connectingModalProvider, setConnectingModalProvider] = useState<Provider | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
 
   useEffect(() => {
     fetchIntegrations()
   }, [])
 
-  const connectedParam = searchParams.get('connected')
-  const errorParam = searchParams.get('error')
-  const reasonParam = searchParams.get('reason')
+  useEffect(() => {
+    const connectedParam = searchParams.get('connected')
+    const errorParam = searchParams.get('error')
+    const reasonParam = searchParams.get('reason')
+
+    if (connectedParam) {
+      setToast({ message: `Successfully connected ${connectedParam}`, type: 'success' })
+      setSearchParams({}, { replace: true })
+    } else if (errorParam) {
+      const msg = reasonParam
+        ? `Failed to connect ${errorParam}: ${reasonParam}`
+        : `Failed to connect ${errorParam}`
+      setToast({ message: msg, type: 'error' })
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
+
+  const handleConnect = (provider: Provider) => {
+    setConnectingModalProvider(provider)
+  }
+
+  const handleModalConfirm = async () => {
+    if (!connectingModalProvider) return
+    setConnectingModalProvider(null)
+    await connect(connectingModalProvider)
+  }
+
+  const handleModalCancel = () => {
+    setConnectingModalProvider(null)
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Integrations</h1>
-
-      {connectedParam && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
-          Successfully connected {connectedParam}
-        </div>
-      )}
-
-      {errorParam && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-          Failed to connect {errorParam}{reasonParam ? `: ${reasonParam}` : ''}
-        </div>
-      )}
 
       {loading ? (
         <div className="flex justify-center items-center py-12">
@@ -47,7 +71,7 @@ const IntegrationsPage = () => {
                 key={provider}
                 provider={provider}
                 integration={integration}
-                onConnect={connect}
+                onConnect={handleConnect}
                 onDisconnect={() => {}}
                 onSyncNow={() => {}}
                 onConfigure={() => {}}
@@ -56,6 +80,24 @@ const IntegrationsPage = () => {
             )
           })}
         </div>
+      )}
+
+      {connectingModalProvider && (
+        <ConnectModal
+          open={true}
+          provider={connectingModalProvider}
+          onConfirm={handleModalConfirm}
+          onCancel={handleModalCancel}
+          loading={connectingProvider === connectingModalProvider}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
       )}
     </div>
   )

@@ -4,8 +4,9 @@ export const integrationService = {
         const data = await api.get('/integrations');
         return data.data;
     },
-    initiateConnect: async (_provider) => {
-        return Promise.resolve('');
+    initiateConnect: async (provider) => {
+        const data = await api.post(`/integrations/${provider}/connect`, {});
+        return data.data.authorizationUrl;
     },
     triggerSync: async (_provider) => {
         return Promise.resolve({ jobId: '', status: '' });
