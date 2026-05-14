@@ -1,4 +1,4 @@
-import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration, getResources, getConfig, updateConfig, getActivity } from '../services/integration.service';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 
@@ -12,14 +12,21 @@ jest.mock('../config/database', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    integrationConfig: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+    },
     integrationActivity: {
       create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
 
 jest.mock('../services/integration-sync.service', () => ({
   runSync: jest.fn(),
+  refreshTokenIfNeeded: jest.fn().mockImplementation((integration: any) => Promise.resolve(integration)),
 }));
 
 jest.mock('axios');
@@ -241,6 +248,132 @@ describe('Integration Service', () => {
       mockPrisma.integration.findUnique.mockResolvedValue(null);
       const result = await getIntegrationStatus('user-1', 'slack');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getResources', () => {
+    beforeEach(() => {
+      process.env.INTEGRATION_TOKEN_ENCRYPTION_KEY = 'a'.repeat(64);
+    });
+
+    it('should return ResourceDTO[] with type channel for slack', async () => {
+      const rawToken = 'raw-access-token';
+      const encryptedToken = encrypt(rawToken);
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+        refreshToken: null,
+        tokenExpiresAt: null,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue(mockIntegration);
+
+      mockAxios.get = jest.fn().mockResolvedValue({
+        data: {
+          channels: [
+            { id: 'C001', name: 'general' },
+            { id: 'C002', name: 'random' },
+          ],
+        },
+      });
+
+      const result = await getResources('user-1', 'slack', 1, 50);
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0]).toEqual({ id: 'C001', name: 'general', type: 'channel' });
+      expect(result.pagination.total).toBe(2);
+    });
+
+    it('should throw REAUTH_REQUIRED when provider returns 401', async () => {
+      const rawToken = 'raw-access-token';
+      const encryptedToken = encrypt(rawToken);
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+        refreshToken: null,
+        tokenExpiresAt: null,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue(mockIntegration);
+
+      const authError: any = new Error('Request failed with status code 401');
+      authError.response = { status: 401 };
+      mockAxios.get = jest.fn().mockRejectedValue(authError);
+
+      const err = await getResources('user-1', 'slack', 1, 50).catch((e) => e);
+      expect(err.code).toBe('REAUTH_REQUIRED');
+    });
+  });
+
+  describe('getConfig', () => {
+    it('should return selectedResourceIds from existing config', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValue({ selectedResourceIds: ['C001', 'C002'] });
+
+      const result = await getConfig('user-1', 'slack');
+      expect(result.selectedResourceIds).toEqual(['C001', 'C002']);
+    });
+
+    it('should return empty array when no config exists', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValue(null);
+
+      const result = await getConfig('user-1', 'slack');
+      expect(result.selectedResourceIds).toEqual([]);
+    });
+  });
+
+  describe('updateConfig', () => {
+    it('should call integrationConfig.upsert and integrationActivity.create with config_updated', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integrationConfig.upsert.mockResolvedValue({ integrationId: 'int-1', selectedResourceIds: ['C001'] });
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+
+      const result = await updateConfig('user-1', 'slack', ['C001']);
+
+      expect(mockPrisma.integrationConfig.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { integrationId: 'int-1' },
+          create: expect.objectContaining({ selectedResourceIds: ['C001'] }),
+          update: expect.objectContaining({ selectedResourceIds: ['C001'] }),
+        })
+      );
+      expect(mockPrisma.integrationActivity.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ eventType: 'config_updated' }),
+        })
+      );
+      expect(result.selectedResourceIds).toEqual(['C001']);
+    });
+  });
+
+  describe('getActivity', () => {
+    it('should return paginated activity with correct skip/take', async () => {
+      const mockActivities = [
+        { id: 'act-1', provider: 'slack', eventType: 'sync_success', message: 'Sync done', detail: null, syncedItemCount: 5, createdAt: new Date() },
+      ];
+      mockPrisma.integrationActivity.findMany.mockResolvedValue(mockActivities);
+      mockPrisma.integrationActivity.count.mockResolvedValue(21);
+
+      const result = await getActivity('user-1', 2, 20);
+
+      expect(mockPrisma.integrationActivity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1' },
+          orderBy: { createdAt: 'desc' },
+          skip: 20,
+          take: 20,
+        })
+      );
+      expect(result.data).toHaveLength(1);
+      expect(result.pagination).toEqual({ page: 2, limit: 20, total: 21 });
     });
   });
 

@@ -7,6 +7,10 @@ export const useIntegrationsStore = create((set, get) => ({
     disconnectingProvider: null,
     errorMessage: null,
     syncingProviders: new Set(),
+    activities: [],
+    activityPage: 1,
+    activityTotal: 0,
+    activityLoading: false,
     fetchIntegrations: async () => {
         set({ loading: true });
         try {
@@ -61,5 +65,20 @@ export const useIntegrationsStore = create((set, get) => ({
         catch {
             set({ integrations, disconnectingProvider: null, errorMessage: `Failed to disconnect ${_provider}` });
         }
+    },
+    fetchActivity: async (_page = 1) => {
+        set({ activityLoading: true, activityPage: _page });
+        try {
+            const result = await integrationService.getActivity(_page);
+            set({ activities: result.data, activityTotal: result.pagination.total, activityLoading: false });
+        }
+        catch {
+            set({ activityLoading: false });
+        }
+    },
+    updateConfig: async (_provider, _selectedResourceIds) => {
+        await integrationService.updateConfig(_provider, _selectedResourceIds);
+        const { fetchActivity } = get();
+        await fetchActivity(1);
     },
 }));

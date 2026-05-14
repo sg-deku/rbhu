@@ -11,8 +11,14 @@ jest.mock('../config/database', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    integrationConfig: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+    },
     integrationActivity: {
       create: jest.fn().mockResolvedValue({}),
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
     },
   },
   connectDB: jest.fn().mockResolvedValue(undefined),
@@ -20,6 +26,7 @@ jest.mock('../config/database', () => ({
 
 jest.mock('../services/integration-sync.service', () => ({
   runSync: jest.fn().mockResolvedValue({ syncedItemCount: 3 }),
+  refreshTokenIfNeeded: jest.fn().mockImplementation((integration: any) => Promise.resolve(integration)),
 }));
 
 jest.mock('../services/integration-scheduler', () => ({
@@ -258,6 +265,116 @@ describe('Integration Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/integrations/:provider/resources', () => {
+    it('should return 200 with resource data when integration exists', async () => {
+      process.env.INTEGRATION_TOKEN_ENCRYPTION_KEY = 'a'.repeat(64);
+      const { encrypt } = jest.requireActual('../utils/encryption') as any;
+      const token = makeToken();
+      const encryptedToken = encrypt('raw-access-token');
+
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+        refreshToken: null,
+        tokenExpiresAt: null,
+      };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue(mockIntegration);
+
+      mockAxios.get = jest.fn().mockResolvedValue({
+        data: { channels: [{ id: 'C001', name: 'general' }] },
+      });
+
+      const res = await request(app)
+        .get('/api/integrations/slack/resources')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].type).toBe('channel');
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app).get('/api/integrations/slack/resources');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/integrations/:provider/config', () => {
+    it('should return 200 with config data', async () => {
+      const token = makeToken();
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integrationConfig.findUnique.mockResolvedValue({ selectedResourceIds: ['C001'] });
+
+      const res = await request(app)
+        .get('/api/integrations/slack/config')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.selectedResourceIds).toEqual(['C001']);
+    });
+  });
+
+  describe('PUT /api/integrations/:provider/config', () => {
+    it('should return 200 with updated config', async () => {
+      const token = makeToken();
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integrationConfig.upsert.mockResolvedValue({ integrationId: 'int-1', selectedResourceIds: ['C001', 'C002'] });
+
+      const res = await request(app)
+        .put('/api/integrations/slack/config')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ selectedResourceIds: ['C001', 'C002'] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.selectedResourceIds).toEqual(['C001', 'C002']);
+    });
+
+    it('should return 400 when selectedResourceIds is not an array', async () => {
+      const token = makeToken();
+
+      const res = await request(app)
+        .put('/api/integrations/slack/config')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ selectedResourceIds: 'not-an-array' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/integrations/activity', () => {
+    it('should return 200 with paginated activity', async () => {
+      const token = makeToken();
+      const mockActivities = [
+        { id: 'act-1', provider: 'slack', eventType: 'sync_success', message: 'Sync done', detail: null, syncedItemCount: 5, createdAt: new Date() },
+      ];
+      mockPrisma.integrationActivity.findMany.mockResolvedValue(mockActivities);
+      mockPrisma.integrationActivity.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/integrations/activity?page=1&limit=20')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.pagination).toMatchObject({ page: 1, limit: 20, total: 1 });
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app).get('/api/integrations/activity');
+      expect(res.status).toBe(401);
     });
   });
 });

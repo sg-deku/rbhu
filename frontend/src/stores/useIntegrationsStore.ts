@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { IntegrationDTO, Provider } from '../types/integrations'
+import { IntegrationDTO, Provider, ActivityDTO } from '../types/integrations'
 import { integrationService } from '../services/integration.service'
 
 interface IntegrationsStore {
@@ -9,10 +9,16 @@ interface IntegrationsStore {
   disconnectingProvider: Provider | null
   errorMessage: string | null
   syncingProviders: Set<Provider>
+  activities: ActivityDTO[]
+  activityPage: number
+  activityTotal: number
+  activityLoading: boolean
   fetchIntegrations: () => Promise<void>
   connect: (_provider: Provider) => Promise<void>
   triggerSync: (_provider: Provider) => Promise<void>
   disconnect: (_provider: Provider) => Promise<void>
+  fetchActivity: (_page?: number) => Promise<void>
+  updateConfig: (_provider: Provider, _selectedResourceIds: string[]) => Promise<void>
 }
 
 export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
@@ -22,6 +28,10 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
   disconnectingProvider: null,
   errorMessage: null,
   syncingProviders: new Set<Provider>(),
+  activities: [],
+  activityPage: 1,
+  activityTotal: 0,
+  activityLoading: false,
 
   fetchIntegrations: async () => {
     set({ loading: true })
@@ -78,5 +88,21 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
     } catch {
       set({ integrations, disconnectingProvider: null, errorMessage: `Failed to disconnect ${_provider}` })
     }
+  },
+
+  fetchActivity: async (_page = 1) => {
+    set({ activityLoading: true, activityPage: _page })
+    try {
+      const result = await integrationService.getActivity(_page)
+      set({ activities: result.data, activityTotal: result.pagination.total, activityLoading: false })
+    } catch {
+      set({ activityLoading: false })
+    }
+  },
+
+  updateConfig: async (_provider: Provider, _selectedResourceIds: string[]) => {
+    await integrationService.updateConfig(_provider, _selectedResourceIds)
+    const { fetchActivity } = get()
+    await fetchActivity(1)
   },
 }))

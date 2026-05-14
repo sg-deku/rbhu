@@ -1,5 +1,16 @@
 import { Request, Response } from 'express';
-import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration } from '../services/integration.service';
+import {
+  getIntegrations,
+  initiateOAuth,
+  handleOAuthCallback,
+  syncIntegration,
+  getIntegrationStatus,
+  disconnectIntegration,
+  getResources as getResourcesService,
+  getConfig as getConfigService,
+  updateConfig as updateConfigService,
+  getActivity as getActivityService,
+} from '../services/integration.service';
 import { verifyOAuthState } from '../utils/oauth-state';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
@@ -86,17 +97,57 @@ export const deleteIntegration = async (req: any, res: Response) => {
 };
 
 export const getResources = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const result = await getResourcesService(req.userId, provider, page, limit);
+    res.json({ success: true, data: result.data, pagination: result.pagination });
+  } catch (error: any) {
+    if (error.code === 'REAUTH_REQUIRED') {
+      return res.status(401).json({ success: false, code: 'REAUTH_REQUIRED', message: 'Reauthorization required' });
+    }
+    if (error.statusCode === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getConfig = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const result = await getConfigService(req.userId, provider);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const updateConfig = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const { selectedResourceIds } = req.body;
+    const result = await updateConfigService(req.userId, provider, selectedResourceIds);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const listActivity = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const result = await getActivityService(req.userId, page, limit);
+    res.json({ success: true, data: result.data, pagination: result.pagination });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };

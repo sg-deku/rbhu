@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { validateProvider } from '../validators/integration.validator';
+import { validateProvider, validateConfigBody } from '../validators/integration.validator';
 import {
   listIntegrations,
   initiateConnect,
@@ -25,6 +25,6 @@ router.post('/:provider/sync', authMiddleware, validateProvider, syncNow);
 router.delete('/:provider', authMiddleware, validateProvider, deleteIntegration);
 router.get('/:provider/resources', authMiddleware, validateProvider, getResources);
 router.get('/:provider/config', authMiddleware, validateProvider, getConfig);
-router.put('/:provider/config', authMiddleware, validateProvider, updateConfig);
+router.put('/:provider/config', authMiddleware, validateProvider, validateConfigBody, updateConfig);
 
 export default router;

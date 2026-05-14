@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 import { getProviderConfig } from '../config/integrations';
-import { runSync } from './integration-sync.service';
+import { runSync, refreshTokenIfNeeded } from './integration-sync.service';
 
 export interface IntegrationDTO {
   id: string;
@@ -278,4 +278,192 @@ export async function syncAllIntegrations(): Promise<void> {
     } catch {
     }
   }
+}
+
+export interface ResourceDTO {
+  id: string;
+  name: string;
+  type: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ActivityDTO {
+  id: string;
+  provider: string;
+  eventType: string;
+  message: string;
+  detail: string | null;
+  syncedItemCount: number | null;
+  createdAt: Date;
+}
+
+export async function getResources(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence',
+  page: number,
+  limit: number
+): Promise<{ data: ResourceDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    const err = new Error('Integration not found') as any;
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const fresh = await refreshTokenIfNeeded(integration as any);
+  const rawToken = decrypt(fresh.accessToken);
+
+  let resources: ResourceDTO[] = [];
+
+  try {
+    if (provider === 'slack') {
+      const res = await axios.get(
+        `https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=${limit}`,
+        { headers: { Authorization: `Bearer ${rawToken}` } }
+      );
+      if (res.data.error === 'invalid_auth' || res.data.error === 'token_revoked') {
+        const err = new Error('Reauth required') as any;
+        err.code = 'REAUTH_REQUIRED';
+        throw err;
+      }
+      resources = (res.data.channels || []).map((ch: any) => ({
+        id: ch.id,
+        name: ch.name,
+        type: 'channel',
+      }));
+    } else if (provider === 'jira') {
+      const resourcesRes = await axios.get(
+        'https://api.atlassian.com/oauth/token/accessible-resources',
+        { headers: { Authorization: `Bearer ${rawToken}` } }
+      );
+      const cloudId = resourcesRes.data[0]?.id;
+      if (!cloudId) return { data: [], pagination: { page, limit, total: 0 } };
+      const projectsRes = await axios.get(
+        `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/project`,
+        { headers: { Authorization: `Bearer ${rawToken}` } }
+      );
+      resources = (projectsRes.data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        type: 'project',
+      }));
+    } else if (provider === 'confluence') {
+      const resourcesRes = await axios.get(
+        'https://api.atlassian.com/oauth/token/accessible-resources',
+        { headers: { Authorization: `Bearer ${rawToken}` } }
+      );
+      const cloudId = resourcesRes.data[0]?.id;
+      if (!cloudId) return { data: [], pagination: { page, limit, total: 0 } };
+      const spacesRes = await axios.get(
+        `https://api.atlassian.com/ex/confluence/${cloudId}/wiki/rest/api/space`,
+        { headers: { Authorization: `Bearer ${rawToken}` } }
+      );
+      resources = (spacesRes.data?.results || spacesRes.data || []).map((s: any) => ({
+        id: s.key,
+        name: s.name,
+        type: 'space',
+      }));
+    }
+  } catch (err: any) {
+    if (err.code === 'REAUTH_REQUIRED') throw err;
+    if (err.response?.status === 401) {
+      const authErr = new Error('Reauth required') as any;
+      authErr.code = 'REAUTH_REQUIRED';
+      throw authErr;
+    }
+    throw err;
+  }
+
+  const total = resources.length;
+  const start = (page - 1) * limit;
+  const paginated = resources.slice(start, start + limit);
+
+  return { data: paginated, pagination: { page, limit, total } };
+}
+
+export async function getConfig(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence'
+): Promise<{ selectedResourceIds: string[] }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    const err = new Error('Integration not found') as any;
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const config = await prisma.integrationConfig.findUnique({
+    where: { integrationId: integration.id },
+  });
+
+  return { selectedResourceIds: config?.selectedResourceIds ?? [] };
+}
+
+export async function updateConfig(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence',
+  selectedResourceIds: string[]
+): Promise<{ selectedResourceIds: string[] }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    const err = new Error('Integration not found') as any;
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await prisma.integrationConfig.upsert({
+    where: { integrationId: integration.id },
+    create: { integrationId: integration.id, selectedResourceIds },
+    update: { selectedResourceIds },
+  });
+
+  await prisma.integrationActivity.create({
+    data: {
+      integrationId: integration.id,
+      userId,
+      provider: provider as any,
+      eventType: 'config_updated',
+      message: `Configuration updated for ${provider}`,
+    },
+  });
+
+  return { selectedResourceIds };
+}
+
+export async function getActivity(
+  userId: string,
+  page: number,
+  limit: number
+): Promise<{ data: ActivityDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const [activities, total] = await Promise.all([
+    prisma.integrationActivity.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.integrationActivity.count({ where: { userId } }),
+  ]);
+
+  return {
+    data: activities.map((a: any) => ({
+      id: a.id,
+      provider: a.provider,
+      eventType: a.eventType,
+      message: a.message,
+      detail: a.detail,
+      syncedItemCount: a.syncedItemCount,
+      createdAt: a.createdAt,
+    })),
+    pagination: { page, limit, total },
+  };
 }

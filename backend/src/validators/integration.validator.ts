@@ -9,3 +9,11 @@ export const validateProvider = (req: Request, res: Response, next: NextFunction
   }
   next();
 };
+
+export const validateConfigBody = (req: Request, res: Response, next: NextFunction) => {
+  const { selectedResourceIds } = req.body;
+  if (!Array.isArray(selectedResourceIds)) {
+    return res.status(400).json({ success: false, message: 'selectedResourceIds must be an array' });
+  }
+  next();
+};

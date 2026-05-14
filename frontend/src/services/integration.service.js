@@ -15,16 +15,35 @@ export const integrationService = {
     deleteIntegration: async (provider) => {
         await api.delete(`/integrations/${provider}`);
     },
-    getResources: async (_provider) => {
-        return Promise.resolve([]);
+    getResources: async (provider, page = 1, limit = 50) => {
+        const data = await api.get(`/integrations/${provider}/resources?page=${page}&limit=${limit}`);
+        if (!data.success) {
+            const err = new Error(data.message || 'Failed to fetch resources');
+            err.code = data.code;
+            err.status = data.code === 'REAUTH_REQUIRED' ? 401 : 500;
+            throw err;
+        }
+        return { data: data.data, pagination: data.pagination };
     },
-    getConfig: async (_provider) => {
-        return Promise.resolve(null);
+    getConfig: async (provider) => {
+        const data = await api.get(`/integrations/${provider}/config`);
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch config');
+        }
+        return data.data;
     },
-    updateConfig: async (_provider, _config) => {
-        return Promise.resolve();
+    updateConfig: async (provider, selectedResourceIds) => {
+        const data = await api.put(`/integrations/${provider}/config`, { selectedResourceIds });
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to update config');
+        }
+        return data.data;
     },
-    listActivity: async () => {
-        return Promise.resolve([]);
+    getActivity: async (page = 1, limit = 20) => {
+        const data = await api.get(`/integrations/activity?page=${page}&limit=${limit}`);
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch activity');
+        }
+        return { data: data.data, pagination: data.pagination };
     },
 };
