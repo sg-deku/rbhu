@@ -12,8 +12,8 @@ export const integrationService = {
         const data = await api.post(`/integrations/${provider}/sync`, {});
         return data.data;
     },
-    deleteIntegration: async (_provider) => {
-        return Promise.resolve();
+    deleteIntegration: async (provider) => {
+        await api.delete(`/integrations/${provider}`);
     },
     getResources: async (_provider) => {
         return Promise.resolve([]);

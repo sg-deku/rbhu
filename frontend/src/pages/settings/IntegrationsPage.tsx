@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useIntegrationsStore } from '../../stores/useIntegrationsStore'
 import IntegrationCard from '../../components/integrations/IntegrationCard'
 import ConnectModal from '../../components/integrations/ConnectModal'
+import DisconnectDialog from '../../components/integrations/DisconnectDialog'
 import Toast from '../../components/ui/Toast'
 import { Provider } from '../../types/integrations'
 
@@ -15,8 +16,9 @@ interface ToastState {
 
 const IntegrationsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { integrations, loading, connectingProvider, syncingProviders, fetchIntegrations, connect, triggerSync } = useIntegrationsStore()
+  const { integrations, loading, connectingProvider, disconnectingProvider, syncingProviders, fetchIntegrations, connect, triggerSync, disconnect } = useIntegrationsStore()
   const [connectingModalProvider, setConnectingModalProvider] = useState<Provider | null>(null)
+  const [disconnectingModalProvider, setDisconnectingModalProvider] = useState<Provider | null>(null)
   const [toast, setToast] = useState<ToastState | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -81,6 +83,27 @@ const IntegrationsPage = () => {
     await triggerSync(provider)
   }
 
+  const handleDisconnect = (provider: Provider) => {
+    setDisconnectingModalProvider(provider)
+  }
+
+  const handleDisconnectConfirm = async () => {
+    if (!disconnectingModalProvider) return
+    const provider = disconnectingModalProvider
+    setDisconnectingModalProvider(null)
+    await disconnect(provider)
+    const { errorMessage } = useIntegrationsStore.getState()
+    if (errorMessage) {
+      setToast({ message: `Failed to disconnect ${provider}. Please try again.`, type: 'error' })
+    } else {
+      setToast({ message: `Disconnected ${provider.charAt(0).toUpperCase() + provider.slice(1)}`, type: 'success' })
+    }
+  }
+
+  const handleDisconnectCancel = () => {
+    setDisconnectingModalProvider(null)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Integrations</h1>
@@ -99,10 +122,11 @@ const IntegrationsPage = () => {
                 provider={provider}
                 integration={integration}
                 onConnect={handleConnect}
-                onDisconnect={() => {}}
+                onDisconnect={handleDisconnect}
                 onSyncNow={handleSyncNow}
                 onConfigure={() => {}}
                 connectingProvider={connectingProvider}
+                disconnectingProvider={disconnectingProvider}
                 syncingProviders={syncingProviders}
               />
             )
@@ -117,6 +141,16 @@ const IntegrationsPage = () => {
           onConfirm={handleModalConfirm}
           onCancel={handleModalCancel}
           loading={connectingProvider === connectingModalProvider}
+        />
+      )}
+
+      {disconnectingModalProvider && (
+        <DisconnectDialog
+          open={true}
+          provider={disconnectingModalProvider}
+          onConfirm={handleDisconnectConfirm}
+          onCancel={handleDisconnectCancel}
+          loading={disconnectingProvider === disconnectingModalProvider}
         />
       )}
 

@@ -17,8 +17,8 @@ export const integrationService = {
     return data.data
   },
 
-  deleteIntegration: async (_provider: Provider): Promise<void> => {
-    return Promise.resolve()
+  deleteIntegration: async (provider: Provider): Promise<void> => {
+    await api.delete(`/integrations/${provider}`)
   },
 
   getResources: async (_provider: Provider): Promise<any[]> => {

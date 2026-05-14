@@ -9,6 +9,7 @@ jest.mock('../config/database', () => ({
       upsert: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     integrationActivity: {
       create: jest.fn().mockResolvedValue({}),
@@ -200,6 +201,63 @@ describe('Integration Routes', () => {
     it('should return 401 without token', async () => {
       const res = await request(app).post('/api/integrations/slack/sync');
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /api/integrations/:provider', () => {
+    it('should return 401 without token', async () => {
+      const res = await request(app).delete('/api/integrations/slack');
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 400 for invalid provider', async () => {
+      const token = makeToken();
+      const res = await request(app)
+        .delete('/api/integrations/invalid')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 200 with success message when integration exists', async () => {
+      process.env.SLACK_CLIENT_ID = 'slack-client-id';
+      process.env.SLACK_CLIENT_SECRET = 'slack-secret';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+
+      const token = makeToken();
+      const { encrypt } = jest.requireActual('../utils/encryption') as any;
+      const encryptedToken = encrypt('raw-access-token');
+
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.delete.mockResolvedValue(mockIntegration);
+      mockAxios.post = jest.fn().mockResolvedValue({ data: { ok: true } });
+
+      const res = await request(app)
+        .delete('/api/integrations/slack')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Integration disconnected');
+    });
+
+    it('should return 404 when integration not found', async () => {
+      const token = makeToken();
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .delete('/api/integrations/slack')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
     });
   });
 });

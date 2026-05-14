@@ -4,6 +4,7 @@ export const useIntegrationsStore = create((set, get) => ({
     integrations: [],
     loading: false,
     connectingProvider: null,
+    disconnectingProvider: null,
     errorMessage: null,
     syncingProviders: new Set(),
     fetchIntegrations: async () => {
@@ -47,6 +48,18 @@ export const useIntegrationsStore = create((set, get) => ({
             const afterError = new Set(get().syncingProviders);
             afterError.delete(_provider);
             set({ syncingProviders: afterError, errorMessage: `Failed to sync ${_provider}` });
+        }
+    },
+    disconnect: async (_provider) => {
+        const { integrations } = get();
+        set({ disconnectingProvider: _provider });
+        set({ integrations: integrations.filter((i) => i.provider !== _provider) });
+        try {
+            await integrationService.deleteIntegration(_provider);
+            set({ disconnectingProvider: null });
+        }
+        catch {
+            set({ integrations, disconnectingProvider: null, errorMessage: `Failed to disconnect ${_provider}` });
         }
     },
 }));

@@ -1,4 +1,4 @@
-import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration } from '../services/integration.service';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 
@@ -10,6 +10,7 @@ jest.mock('../config/database', () => ({
       upsert: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     integrationActivity: {
       create: jest.fn(),
@@ -240,6 +241,76 @@ describe('Integration Service', () => {
       mockPrisma.integration.findUnique.mockResolvedValue(null);
       const result = await getIntegrationStatus('user-1', 'slack');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('disconnectIntegration', () => {
+    beforeEach(() => {
+      process.env.SLACK_CLIENT_ID = 'slack-client-id';
+      process.env.SLACK_CLIENT_SECRET = 'slack-secret';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.INTEGRATION_TOKEN_ENCRYPTION_KEY = 'a'.repeat(64);
+    });
+
+    it('should call axios.post for revoke and then prisma.integration.delete', async () => {
+      const rawToken = 'raw-access-token';
+      const { encrypt: enc } = jest.requireActual('../utils/encryption') as any;
+      const encryptedToken = encrypt(rawToken);
+
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.delete.mockResolvedValue(mockIntegration);
+      mockAxios.post = jest.fn().mockResolvedValue({ data: { ok: true } });
+
+      await disconnectIntegration('user-1', 'slack');
+
+      expect(mockAxios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/auth.revoke',
+        { token: rawToken }
+      );
+      expect(mockPrisma.integration.delete).toHaveBeenCalledWith({
+        where: { id: 'int-1' },
+      });
+    });
+
+    it('should still call prisma.integration.delete when revoke fails (best-effort)', async () => {
+      const encryptedToken = encrypt('raw-access-token');
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: encryptedToken,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.delete.mockResolvedValue(mockIntegration);
+      mockAxios.post = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await disconnectIntegration('user-1', 'slack');
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockPrisma.integration.delete).toHaveBeenCalledWith({
+        where: { id: 'int-1' },
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw a 404-style error when integration not found', async () => {
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+
+      const error = await disconnectIntegration('user-1', 'slack').catch((e) => e);
+
+      expect(error.message).toBe('Integration not found');
+      expect(error.statusCode).toBe(404);
     });
   });
 });

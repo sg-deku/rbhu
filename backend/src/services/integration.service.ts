@@ -237,6 +237,33 @@ export async function getIntegrationStatus(
   };
 }
 
+export async function disconnectIntegration(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence'
+): Promise<void> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    const err = new Error('Integration not found') as any;
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const config = getProviderConfig(provider);
+  if (config.revokeUrl) {
+    try {
+      const rawToken = decrypt(integration.accessToken);
+      await axios.post(config.revokeUrl, { token: rawToken });
+    } catch (revokeErr) {
+      console.error(`Failed to revoke token for ${provider}:`, revokeErr);
+    }
+  }
+
+  await prisma.integration.delete({ where: { id: integration.id } });
+}
+
 export async function syncAllIntegrations(): Promise<void> {
   const integrations = await prisma.integration.findMany({
     where: { status: 'connected' },

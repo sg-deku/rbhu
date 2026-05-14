@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration } from '../services/integration.service';
 import { verifyOAuthState } from '../utils/oauth-state';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
@@ -73,7 +73,16 @@ export const getStatus = async (req: any, res: Response) => {
 };
 
 export const deleteIntegration = async (req: any, res: Response) => {
-  res.status(501).json({ success: false, message: 'Not implemented' });
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    await disconnectIntegration(req.userId, provider);
+    res.json({ success: true, message: 'Integration disconnected' });
+  } catch (error: any) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getResources = async (req: any, res: Response) => {
