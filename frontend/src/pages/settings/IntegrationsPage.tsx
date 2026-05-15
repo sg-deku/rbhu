@@ -9,6 +9,7 @@ import ConfigureDrawer from '../../components/integrations/ConfigureDrawer'
 import ActivityLog from '../../components/integrations/ActivityLog'
 import Toast from '../../components/ui/Toast'
 import { Provider } from '../../types/integrations'
+import { Plus, Link as LinkIcon, X, Plug } from 'lucide-react'
 
 const PROVIDERS: Provider[] = ['jira', 'slack', 'confluence']
 
@@ -38,7 +39,12 @@ const itemVariants = {
 
 const IntegrationsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { integrations, loading, connectingProvider, disconnectingProvider, syncingProviders, fetchIntegrations, connect, triggerSync, disconnect, activities, activityPage, activityTotal, activityLoading, fetchActivity, updateConfig } = useIntegrationsStore()
+  const { 
+    integrations, loading, connectingProvider, disconnectingProvider, syncingProviders, 
+    fetchIntegrations, connect, triggerSync, disconnect, activities, activityPage, 
+    activityTotal, activityLoading, fetchActivity, updateConfig 
+  } = useIntegrationsStore()
+  
   const [connectingModalProvider, setConnectingModalProvider] = useState<Provider | null>(null)
   const [disconnectingModalProvider, setDisconnectingModalProvider] = useState<Provider | null>(null)
   const [configuringProvider, setConfiguringProvider] = useState<Provider | null>(null)
@@ -149,152 +155,137 @@ const IntegrationsPage = () => {
   const availableProviders = PROVIDERS.filter(p => !activeProviders.has(p))
 
   return (
-    <div className="min-h-full" style={{ backgroundColor: 'var(--color-bg)' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex items-start justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--color-text)' }}>
-              Integrations
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              Connect your tools to sync data and surface knowledge across your workspace.
-            </p>
-          </div>
-          {availableProviders.length > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setAddIntegrationOpen(true)}
-              className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-150"
-              style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Integration
-            </motion.button>
-          )}
+    <div className="w-full">
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-1">Integrations</h1>
+          <p className="text-sm text-gray-500">Connect your tools to sync data and surface knowledge across your workspace.</p>
         </div>
+        {availableProviders.length > 0 && (
+          <button
+            onClick={() => setAddIntegrationOpen(true)}
+            className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Integration
+          </button>
+        )}
+      </div>
 
-        {loading ? (
-          <div className="space-y-8">
-            <div>
-              <div className="h-5 w-36 rounded mb-4 animate-pulse" style={{ backgroundColor: 'var(--color-border)' }} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2].map(i => (
-                  <div key={i} className="rounded-xl border animate-pulse" style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', height: '220px' }} />
-                ))}
-              </div>
+      {loading ? (
+        <div className="space-y-8">
+          <div>
+            <div className="h-5 w-36 rounded mb-4 bg-gray-200 animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2].map(i => (
+                <div key={i} className="rounded-xl border border-gray-200 bg-white h-52 animate-pulse" />
+              ))}
             </div>
           </div>
-        ) : (
-          <div className="space-y-10">
-            {activeIntegrations.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-5">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
-                    Active Integrations
-                  </h2>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' }}
-                  >
-                    {activeIntegrations.length}
-                  </span>
-                </div>
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {activeIntegrations.map(integration => (
-                    <motion.div key={integration.provider} variants={itemVariants}>
-                      <IntegrationCard
-                        provider={integration.provider}
-                        integration={integration}
-                        onConnect={handleConnect}
-                        onDisconnect={handleDisconnect}
-                        onSyncNow={handleSyncNow}
-                        onConfigure={handleConfigure}
-                        connectingProvider={connectingProvider}
-                        disconnectingProvider={disconnectingProvider}
-                        syncingProviders={syncingProviders}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </section>
-            )}
-
-            {availableProviders.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-5">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
-                    Available to Connect
-                  </h2>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
-                  >
-                    {availableProviders.length}
-                  </span>
-                </div>
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {availableProviders.map(provider => (
-                    <motion.div key={provider} variants={itemVariants}>
-                      <IntegrationCard
-                        provider={provider}
-                        integration={null}
-                        onConnect={handleConnect}
-                        onDisconnect={handleDisconnect}
-                        onSyncNow={handleSyncNow}
-                        onConfigure={handleConfigure}
-                        connectingProvider={connectingProvider}
-                        disconnectingProvider={disconnectingProvider}
-                        syncingProviders={syncingProviders}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </section>
-            )}
-
-            {activeIntegrations.length === 0 && availableProviders.length === 0 && (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                  <svg className="w-8 h-8" style={{ color: 'var(--color-text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                </div>
-                <p className="text-base font-medium mb-1" style={{ color: 'var(--color-text)' }}>No integrations available</p>
-                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Check back soon for new integrations.</p>
+        </div>
+      ) : (
+        <div className="space-y-12">
+          {activeIntegrations.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
+                  Active Integrations
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+                  {activeIntegrations.length} Connected
+                </span>
               </div>
-            )}
-          </div>
-        )}
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {activeIntegrations.map(integration => (
+                  <motion.div key={integration.provider} variants={itemVariants}>
+                    <IntegrationCard
+                      provider={integration.provider}
+                      integration={integration}
+                      onConnect={handleConnect}
+                      onDisconnect={handleDisconnect}
+                      onSyncNow={handleSyncNow}
+                      onConfigure={handleConfigure}
+                      connectingProvider={connectingProvider}
+                      disconnectingProvider={disconnectingProvider}
+                      syncingProviders={syncingProviders}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </section>
+          )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.4, ease: 'easeOut' }}
-          className="mt-10"
-        >
-          <ActivityLog
-            activities={activities}
-            page={activityPage}
-            total={activityTotal}
-            limit={20}
-            onPageChange={(page) => fetchActivity(page)}
-            loading={activityLoading}
-          />
-        </motion.div>
-      </div>
+          {availableProviders.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
+                  Available to Connect
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                  {availableProviders.length} Available
+                </span>
+              </div>
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {availableProviders.map(provider => (
+                  <motion.div key={provider} variants={itemVariants}>
+                    <IntegrationCard
+                      provider={provider}
+                      integration={null}
+                      onConnect={handleConnect}
+                      onDisconnect={handleDisconnect}
+                      onSyncNow={handleSyncNow}
+                      onConfigure={handleConfigure}
+                      connectingProvider={connectingProvider}
+                      disconnectingProvider={disconnectingProvider}
+                      syncingProviders={syncingProviders}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </section>
+          )}
+
+          {activeIntegrations.length === 0 && availableProviders.length === 0 && (
+            <div className="text-center py-24 bg-white border border-gray-200 rounded-2xl border-dashed">
+              <div className="w-12 h-12 bg-gray-50 rounded-xl mx-auto mb-4 flex items-center justify-center border border-gray-100 shadow-sm">
+                <Plug className="w-6 h-6 text-gray-400" />
+              </div>
+              <p className="text-base font-medium text-gray-900 mb-1">No integrations available</p>
+              <p className="text-sm text-gray-500">Check back soon for new integrations.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4, ease: 'easeOut' }}
+        className="mt-12 pt-10 border-t border-gray-200"
+      >
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900">Activity Log</h2>
+          <p className="text-sm text-gray-500">Recent synchronization events and status changes.</p>
+        </div>
+        <ActivityLog
+          activities={activities}
+          page={activityPage}
+          total={activityTotal}
+          limit={20}
+          onPageChange={(page) => fetchActivity(page)}
+          loading={activityLoading}
+        />
+      </motion.div>
 
       <AnimatePresence>
         {addIntegrationOpen && (
@@ -303,8 +294,7 @@ const IntegrationsPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
               onClick={() => setAddIntegrationOpen(false)}
             />
             <motion.div
@@ -316,50 +306,49 @@ const IntegrationsPage = () => {
               onClick={() => setAddIntegrationOpen(false)}
             >
               <div
-                className="w-full max-w-md rounded-2xl p-6"
-                style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}
+                className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Add Integration</h2>
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                  <h2 className="text-lg font-bold text-gray-900">Add Integration</h2>
                   <button
                     onClick={() => setAddIntegrationOpen(false)}
-                    className="p-1.5 rounded-lg transition-all duration-150"
-                    style={{ color: 'var(--color-text-secondary)' }}
+                    className="p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-lg transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm mb-5" style={{ color: 'var(--color-text-secondary)' }}>Choose a tool to connect to your workspace.</p>
-                <div className="space-y-2">
-                  {availableProviders.length === 0 ? (
-                    <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-secondary)' }}>All available integrations are already connected.</p>
-                  ) : (
-                    availableProviders.map(provider => (
-                      <button
-                        key={provider}
-                        onClick={() => handleConnect(provider)}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-150"
-                        style={{
-                          backgroundColor: 'var(--color-bg-secondary)',
-                          border: '1px solid var(--color-border)',
-                          color: 'var(--color-text)',
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)' }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{PROVIDER_META[provider].name}</span>
-                          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{PROVIDER_META[provider].category}</span>
-                        </div>
-                        <svg className="w-4 h-4" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                      </button>
-                    ))
-                  )}
+                
+                <div className="p-5 bg-gray-50">
+                  <p className="text-sm text-gray-500 mb-4">Choose a tool to connect to your workspace.</p>
+                  <div className="space-y-2">
+                    {availableProviders.length === 0 ? (
+                      <p className="text-sm text-center py-6 text-gray-500 bg-white border border-gray-200 rounded-xl border-dashed">
+                        All available integrations are already connected.
+                      </p>
+                    ) : (
+                      availableProviders.map(provider => (
+                        <button
+                          key={provider}
+                          onClick={() => handleConnect(provider)}
+                          className="group w-full flex items-center justify-between px-4 py-3.5 bg-white border border-gray-200 rounded-xl hover:border-indigo-500 hover:shadow-sm transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-colors">
+                              <LinkIcon className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                            </div>
+                            <div>
+                              <span className="block font-semibold text-gray-900">{PROVIDER_META[provider].name}</span>
+                              <span className="block text-xs text-gray-500 mt-0.5">{PROVIDER_META[provider].category}</span>
+                            </div>
+                          </div>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <Plus className="w-4 h-4" />
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

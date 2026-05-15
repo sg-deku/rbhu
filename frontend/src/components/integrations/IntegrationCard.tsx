@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Provider, IntegrationDTO } from '../../types/integrations'
 import StatusBadge from './StatusBadge'
 import SyncStatusIndicator from './SyncStatusIndicator'
+import { RefreshCw, Settings, Trash2, Link2 } from 'lucide-react'
 
 const JiraIcon = () => (
   <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -109,49 +110,36 @@ const IntegrationCard = ({
 
   return (
     <motion.div
-      className="relative flex flex-col rounded-xl border p-6 h-full transition-shadow duration-200"
-      style={{
-        backgroundColor: 'var(--color-card)',
-        borderColor: isConnected ? 'rgba(99,102,241,0.3)' : isError ? 'rgba(239,68,68,0.3)' : 'var(--color-border)',
-        boxShadow: '0 1px 3px var(--color-shadow)',
-      }}
-      whileHover={{
-        y: -3,
-        boxShadow: '0 8px 24px var(--color-shadow)',
-        transition: { duration: 0.2, ease: 'easeOut' },
-      }}
+      className={`relative flex flex-col rounded-2xl border p-6 h-full transition-shadow duration-200 bg-white shadow-sm hover:shadow-md ${
+        isConnected ? 'border-indigo-100 hover:border-indigo-200' : isError ? 'border-red-100' : 'border-gray-200 hover:border-gray-300'
+      }`}
+      whileHover={{ y: -2 }}
     >
       {isConnected && (
-        <div
-          className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl"
-          style={{ background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }}
-        />
+        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 to-purple-500" />
       )}
 
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-8 h-8 flex-shrink-0">
+      <div className="flex items-start justify-between mb-5">
+        <div className="w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden shadow-sm">
           <Icon />
         </div>
         <StatusBadge status={integration?.status ?? 'disconnected'} />
       </div>
 
       <div className="flex-1">
-        <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text)' }}>
+        <h3 className="text-lg font-bold mb-2 text-gray-900">
           {info.name}
         </h3>
-        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+        <p className="text-sm leading-relaxed mb-5 text-gray-500">
           {info.description}
         </p>
 
         {isConnected && (integration?.accountName || integration?.accountEmail) && (
-          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-            >
+          <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-100">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white bg-indigo-600 flex-shrink-0 shadow-sm">
               {(integration.accountName || integration.accountEmail || '?').charAt(0).toUpperCase()}
             </div>
-            <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text)' }}>
+            <span className="text-xs font-medium truncate text-gray-700">
               {integration.accountName || integration.accountEmail}
             </span>
           </div>
@@ -165,25 +153,22 @@ const IntegrationCard = ({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mt-5 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+      <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-gray-100">
         {!isConnected ? (
           <button
             onClick={() => onConnect(provider)}
             disabled={isConnecting}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+            className="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
           >
             {isConnecting ? (
               <>
-                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Connecting…
               </>
             ) : (
               <>
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                Connect
+                <Link2 className="w-4 h-4" />
+                Connect to {info.name}
               </>
             )}
           </button>
@@ -192,39 +177,33 @@ const IntegrationCard = ({
             <button
               onClick={() => onSyncNow(provider)}
               disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ color: 'var(--color-primary)', backgroundColor: 'rgba(99,102,241,0.08)' }}
+              className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSyncing ? (
-                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-indigo-700 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <RefreshCw className="w-4 h-4" />
               )}
               Sync
             </button>
             <button
               onClick={() => onConfigure(provider)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150"
-              style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-secondary)' }}
+              className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <Settings className="w-4 h-4 text-gray-500" />
               Configure
             </button>
             <button
               onClick={() => onDisconnect(provider)}
               disabled={isDisconnecting}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ml-auto"
-              style={{ color: '#dc2626', backgroundColor: 'rgba(220,38,38,0.08)' }}
+              className="flex-shrink-0 inline-flex justify-center items-center p-2 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Disconnect"
             >
-              {isDisconnecting && (
-                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              {isDisconnecting ? (
+                <span className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
               )}
-              Disconnect
             </button>
           </>
         )}

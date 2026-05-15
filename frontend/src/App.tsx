@@ -9,13 +9,6 @@ import AccountPage from './pages/settings/AccountPage'
 import DashboardLayout from './components/layout/DashboardLayout'
 import './styles/index.css'
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { token, loading } = useAuth()
-  if (loading) return null
-  if (!token) return <Navigate to="/login" replace />
-  return <>{children}</>
-}
-
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   const { token, loading } = useAuth()
   if (loading) return null
@@ -25,17 +18,15 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <div className="min-h-screen bg-white">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedLayout><Home /></ProtectedLayout>} />
-          <Route path="/settings/integrations" element={<ProtectedLayout><IntegrationsPage /></ProtectedLayout>} />
-          <Route path="/settings/account" element={<ProtectedLayout><AccountPage /></ProtectedLayout>} />
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<ProtectedLayout><Home /></ProtectedLayout>} />
+        <Route path="/settings/integrations" element={<ProtectedLayout><IntegrationsPage /></ProtectedLayout>} />
+        <Route path="/settings/account" element={<ProtectedLayout><AccountPage /></ProtectedLayout>} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
