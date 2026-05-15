@@ -22,6 +22,7 @@ import slackRoutes from './routes/slack.routes';
 import jiraRoutes from './routes/jira.routes';
 import confluenceRoutes from './routes/confluence.routes';
 import oauthRoutes from './routes/oauth.routes';
+import vectorRoutes from './routes/vector.routes';
 import { startIntegrationScheduler } from './services/integration-scheduler';
 
 
@@ -71,6 +72,7 @@ app.use('/api/slack', slackRoutes);
 app.use('/api/jira', jiraRoutes);
 app.use('/api/confluence', confluenceRoutes);
 app.use('/api/oauth', oauthRoutes);
+app.use('/api/vector', vectorRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
