@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { exchangeAtlassianCode, getAtlassianSites } from '../config/atlassian.auth';
 import { ConfluenceService } from '../services/confluence.service';
-
-const prisma = new PrismaClient();
+import { encrypt } from '../utils/encryption';
 
 const CONFLUENCE_CLIENT_ID = process.env.CONFLUENCE_CLIENT_ID;
 const CONFLUENCE_CLIENT_SECRET = process.env.CONFLUENCE_CLIENT_SECRET;
@@ -81,22 +80,35 @@ export const selectConfluenceSite = async (req: any, res: Response) => {
   }
 
   try {
-    await prisma.atlassianIntegration.upsert({
-      where: { userId_cloudId: { userId: req.userId, cloudId } },
+    await prisma.integration.upsert({
+      where: { userId_provider: { userId: req.userId, provider: 'confluence' } },
       update: {
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-        siteUrl: site.url,
-        confluenceEnabled: true,
+        accessToken: encrypt(session.accessToken),
+        refreshToken: session.refreshToken ? encrypt(session.refreshToken) : undefined,
+        accountId: cloudId,
+        accountName: site.url, // siteUrl
+        status: 'connected',
       },
       create: {
         userId: req.userId,
-        cloudId,
-        siteUrl: site.url,
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-        confluenceEnabled: true,
-        jiraEnabled: false,
+        provider: 'confluence',
+        accessToken: encrypt(session.accessToken),
+        refreshToken: session.refreshToken ? encrypt(session.refreshToken) : undefined,
+        accountId: cloudId,
+        accountName: site.url, // siteUrl
+        status: 'connected',
+      },
+    });
+
+    await prisma.integrationActivity.create({
+      data: {
+        integrationId: (await prisma.integration.findUnique({
+          where: { userId_provider: { userId: req.userId, provider: 'confluence' } }
+        }))!.id,
+        userId: req.userId,
+        provider: 'confluence',
+        eventType: 'connected',
+        message: 'Connected to Confluence',
       },
     });
 

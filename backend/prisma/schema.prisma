@@ -5,53 +5,103 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  name                  String
-  email                 String                 @unique
-  password              String
-  role                  Role                   @default(USER)
-  avatar                String?
-  atlassianIntegrations AtlassianIntegration[]
-  slackIntegrations     SlackIntegration[]
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-}
-
-model SlackIntegration {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  accessToken  String
-  botUserId    String?
-  teamId       String?
-  teamName     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([userId])
-}
-
-model AtlassianIntegration {
-  id                String   @id @default(cuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  cloudId           String
-  siteUrl           String
-  accessToken       String
-  refreshToken      String
-  jiraEnabled       Boolean  @default(false)
-  confluenceEnabled Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@unique([userId, cloudId])
+  id           String                @id @default(cuid())
+  name         String
+  email        String                @unique
+  password     String
+  role         Role                  @default(USER)
+  avatar       String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  integrations Integration[]
+  activities   IntegrationActivity[]
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+enum IntegrationProvider {
+  jira
+  slack
+  confluence
+}
+
+enum IntegrationStatus {
+  connected
+  error
+  disconnected
+}
+
+enum SyncStatus {
+  idle
+  syncing
+  success
+  failed
+}
+
+enum IntegrationEventType {
+  sync_success
+  sync_failed
+  connected
+  disconnected
+  config_updated
+}
+
+model Integration {
+  id              String              @id @default(cuid())
+  userId          String
+  provider        IntegrationProvider
+  status          IntegrationStatus   @default(disconnected)
+  accessToken     String
+  refreshToken    String?
+  clientId        String?
+  clientSecret    String?
+  tokenExpiresAt  DateTime?
+  accountId       String?
+  accountName     String?
+  accountEmail    String?
+  syncStatus      SyncStatus          @default(idle)
+  lastSyncedAt    DateTime?
+  syncedItemCount Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config     IntegrationConfig?
+  activities IntegrationActivity[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+model IntegrationConfig {
+  id                  String      @id @default(cuid())
+  integrationId       String      @unique
+  selectedResourceIds String[]
+  updatedAt           DateTime    @updatedAt
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+}
+
+model IntegrationActivity {
+  id              String               @id @default(cuid())
+  integrationId   String
+  userId          String
+  provider        IntegrationProvider
+  eventType       IntegrationEventType
+  message         String
+  detail          String?
+  syncedItemCount Int?
+  createdAt       DateTime             @default(now())
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([integrationId])
 }

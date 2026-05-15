@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
+import { decrypt, encrypt } from '../utils/encryption';
 import { refreshAtlassianToken } from '../config/atlassian.auth';
 import { transformToMarkdown } from '../utils/confluence.transformer';
 import { indexDocument, createIndex } from './search.service';
-
-const prisma = new PrismaClient();
 
 const CONFLUENCE_CLIENT_ID = process.env.CONFLUENCE_CLIENT_ID;
 const CONFLUENCE_CLIENT_SECRET = process.env.CONFLUENCE_CLIENT_SECRET;
@@ -62,15 +61,21 @@ export class ConfluenceService {
   }
 
   private async getIntegration() {
-    const integration = await prisma.atlassianIntegration.findFirst({
-      where: { userId: this.userId, confluenceEnabled: true },
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: this.userId, provider: 'confluence' } },
     });
 
-    if (!integration) {
+    if (!integration || !integration.accessToken) {
       throw new Error('Confluence integration not found for user');
     }
 
-    return integration;
+    return {
+      id: integration.id,
+      accessToken: decrypt(integration.accessToken),
+      refreshToken: integration.refreshToken ? decrypt(integration.refreshToken) : null,
+      accountId: integration.accountId,
+      siteUrl: integration.accountName // Assuming siteUrl was stored in accountName during migration or fix it if needed
+    };
   }
 
   private async refreshAccessToken(refreshToken: string) {
@@ -80,15 +85,17 @@ export class ConfluenceService {
       CONFLUENCE_CLIENT_SECRET!,
     );
 
-    const integration = await prisma.atlassianIntegration.findFirst({
-      where: { userId: this.userId, confluenceEnabled: true },
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: this.userId, provider: 'confluence' } },
     });
 
-    await prisma.atlassianIntegration.update({
-      where: { id: integration!.id },
+    if (!integration) throw new Error('Integration not found');
+
+    await prisma.integration.update({
+      where: { id: integration.id },
       data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encrypt(tokens.accessToken),
+        refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined,
       },
     });
 
@@ -100,7 +107,9 @@ export class ConfluenceService {
   }
 
   private async confluenceFetch(endpoint: string, options: any = {}, retryCount: number = 0): Promise<any> {
-    let { accessToken, cloudId, refreshToken } = await this.getIntegration();
+    let { accessToken, accountId: cloudId, refreshToken } = await this.getIntegration();
+
+    if (!cloudId) throw new Error('Confluence cloudId not found');
 
     const url = `https://api.atlassian.com/ex/confluence/${cloudId}${endpoint}`;
     

@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { JiraService } from '../services/jira.service';
 import { exchangeAtlassianCode, getAtlassianSites } from '../config/atlassian.auth';
-
-const prisma = new PrismaClient();
+import { encrypt } from '../utils/encryption';
 
 const JIRA_CLIENT_ID = process.env.JIRA_CLIENT_ID;
 const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET;
@@ -41,22 +40,37 @@ export const jiraCallback = async (req: Request, res: Response) => {
 
     const site = sites[0];
 
-    await prisma.atlassianIntegration.upsert({
-      where: { userId_cloudId: { userId: userId as string, cloudId: site.id } },
+    await prisma.integration.upsert({
+      where: { userId_provider: { userId: userId as string, provider: 'jira' } },
       update: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        siteUrl: site.url,
-        jiraEnabled: true,
+        accessToken: encrypt(tokens.accessToken),
+        refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined,
+        accountId: site.id,
+        accountName: site.url,
+        status: 'connected',
       },
       create: {
         userId: userId as string,
-        cloudId: site.id,
-        siteUrl: site.url,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        jiraEnabled: true,
-        confluenceEnabled: false,
+        provider: 'jira',
+        accessToken: encrypt(tokens.accessToken),
+        refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined,
+        accountId: site.id,
+        accountName: site.url,
+        status: 'connected',
+      },
+    });
+
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: userId as string, provider: 'jira' } }
+    });
+
+    await prisma.integrationActivity.create({
+      data: {
+        integrationId: integration!.id,
+        userId: userId as string,
+        provider: 'jira',
+        eventType: 'connected',
+        message: 'Connected to JIRA',
       },
     });
 

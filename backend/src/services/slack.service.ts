@@ -1,7 +1,6 @@
 import { WebClient } from '@slack/web-api';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
+import { decrypt } from '../utils/encryption';
 
 export class SlackService {
   private userId: string;
@@ -14,15 +13,15 @@ export class SlackService {
   private async getClient() {
     if (this.client) return this.client;
 
-    const integration = await prisma.slackIntegration.findUnique({
-      where: { userId: this.userId },
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: this.userId, provider: 'slack' } },
     });
 
-    if (!integration) {
+    if (!integration || !integration.accessToken) {
       throw new Error('Slack integration not found for user');
     }
 
-    this.client = new WebClient(integration.accessToken);
+    this.client = new WebClient(decrypt(integration.accessToken));
     return this.client;
   }
 

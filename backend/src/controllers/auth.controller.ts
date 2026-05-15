@@ -13,8 +13,8 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({ 
-      data: { name, email, password: hashedPassword } 
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword }
     });
     
     const token = jwt.sign(
@@ -32,6 +32,10 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
     
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -56,7 +60,7 @@ export const logout = async (req: Request, res: Response) => {
 
 export const getProfile = async (req: any, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true }
     });

@@ -38,7 +38,7 @@ npm run prisma:migrate
 | POST   | /api/payment/create-order | Payment      |
 
 
-📚 **Swagger:** http://localhost:5000/api/docs
+📚 **Swagger:** http://localhost:5001/api/docs
 
 ---
 *Generated with ❤️ by Navi 🧭*

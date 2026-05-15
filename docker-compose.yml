@@ -1,15 +1,31 @@
+version: '3.8'
+
 services:
-  app:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/rbhu
     env_file:
       - .env
     depends_on:
       - postgres
       - elasticsearch
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:5001/api
+    depends_on:
+      - backend
     restart: unless-stopped
 
   postgres:

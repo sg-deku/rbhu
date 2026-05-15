@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { WebClient } from '@slack/web-api';
 import { SlackService } from '../services/slack.service';
-
-const prisma = new PrismaClient();
+import { encrypt } from '../utils/encryption';
 
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
 const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET;
@@ -38,20 +37,35 @@ export const slackCallback = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Failed to exchange code', error: result.error });
     }
 
-    await prisma.slackIntegration.upsert({
-      where: { userId: userId as string },
+    await prisma.integration.upsert({
+      where: { userId_provider: { userId: userId as string, provider: 'slack' } },
       update: {
-        accessToken: result.access_token!,
-        botUserId: result.bot_user_id,
-        teamId: result.team?.id,
-        teamName: result.team?.name,
+        accessToken: encrypt(result.access_token!),
+        accountId: result.team?.id,
+        accountName: result.team?.name,
+        status: 'connected',
       },
       create: {
         userId: userId as string,
-        accessToken: result.access_token!,
-        botUserId: result.bot_user_id,
-        teamId: result.team?.id,
-        teamName: result.team?.name,
+        provider: 'slack',
+        accessToken: encrypt(result.access_token!),
+        accountId: result.team?.id,
+        accountName: result.team?.name,
+        status: 'connected',
+      },
+    });
+
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: userId as string, provider: 'slack' } }
+    });
+
+    await prisma.integrationActivity.create({
+      data: {
+        integrationId: integration!.id,
+        userId: userId as string,
+        provider: 'slack',
+        eventType: 'connected',
+        message: 'Connected to Slack',
       },
     });
 

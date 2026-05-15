@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
+import { decrypt, encrypt } from '../utils/encryption';
 import { refreshAtlassianToken } from '../config/atlassian.auth';
-
-const prisma = new PrismaClient();
 
 const JIRA_CLIENT_ID = process.env.JIRA_CLIENT_ID;
 const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET;
@@ -14,15 +13,20 @@ export class JiraService {
   }
 
   private async getTokens() {
-    const integration = await prisma.atlassianIntegration.findFirst({
-      where: { userId: this.userId, jiraEnabled: true },
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: this.userId, provider: 'jira' } },
     });
 
-    if (!integration) {
+    if (!integration || !integration.accessToken) {
       throw new Error('JIRA integration not found for user');
     }
 
-    return integration;
+    return {
+      id: integration.id,
+      accessToken: decrypt(integration.accessToken),
+      refreshToken: integration.refreshToken ? decrypt(integration.refreshToken) : null,
+      accountId: integration.accountId
+    };
   }
 
   private async refreshAccessToken(refreshToken: string) {
@@ -32,15 +36,17 @@ export class JiraService {
       JIRA_CLIENT_SECRET!,
     );
 
-    const integration = await prisma.atlassianIntegration.findFirst({
-      where: { userId: this.userId, jiraEnabled: true },
+    const integration = await prisma.integration.findUnique({
+      where: { userId_provider: { userId: this.userId, provider: 'jira' } },
     });
 
-    await prisma.atlassianIntegration.update({
-      where: { id: integration!.id },
+    if (!integration) throw new Error('Integration not found');
+
+    await prisma.integration.update({
+      where: { id: integration.id },
       data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encrypt(tokens.accessToken),
+        refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined,
       },
     });
 
@@ -52,7 +58,9 @@ export class JiraService {
   }
 
   private async jiraFetch(endpoint: string, options: any = {}, retryCount: number = 0): Promise<any> {
-    let { accessToken, cloudId, refreshToken } = await this.getTokens();
+    let { accessToken, accountId: cloudId, refreshToken } = await this.getTokens();
+
+    if (!cloudId) throw new Error('JIRA cloudId not found');
 
     const url = `https://api.atlassian.com/ex/jira/${cloudId}${endpoint}`;
     
@@ -111,7 +119,7 @@ export class JiraService {
   }
 
   async generateIssueUrl(issueKey: string) {
-    let { cloudId, accessToken, refreshToken } = await this.getTokens();
+    let { accountId: cloudId, accessToken, refreshToken } = await this.getTokens();
     
     const fetchResources = async (token: string) => {
       const response = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {

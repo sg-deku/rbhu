@@ -14,13 +14,17 @@ export const initSentry = (): void => {
   console.log('✅ Sentry initialized');
 };
 
-export const sentryRequestHandler = Sentry.expressErrorHandler;
-export const sentryTracingHandler = Sentry.expressErrorHandler;
-export const sentryErrorHandler = Sentry.expressErrorHandler;
+export const sentryRequestHandler = (req: any, res: any, next: any) => next();
+export const sentryTracingHandler = (req: any, res: any, next: any) => next();
+export const sentryErrorHandler = (req: any, res: any, next: any) => next();
 
 export const captureException = (error: Error, context?: Record<string, any>): void => {
   Sentry.withScope(scope => {
-    if (context) scope.setExtras(context);
+    if (context) {
+      Object.entries(context).forEach(([key, value]) => {
+        scope.setExtra(key, value);
+      });
+    }
     Sentry.captureException(error);
   });
 };
