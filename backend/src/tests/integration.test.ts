@@ -20,6 +20,11 @@ jest.mock('../config/database', () => ({
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
     },
+    syncLog: {
+      create: jest.fn().mockResolvedValue({}),
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    },
   },
   connectDB: jest.fn().mockResolvedValue(undefined),
 }));
@@ -375,6 +380,87 @@ describe('Integration Routes', () => {
     it('should return 401 without token', async () => {
       const res = await request(app).get('/api/integrations/activity');
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/integrations/:provider/logs', () => {
+    it('should return 200 with paginated SyncLog entries', async () => {
+      const token = makeToken();
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      const mockLogs = [
+        {
+          id: 'log-1',
+          integrationId: 'int-1',
+          provider: 'slack',
+          status: 'success',
+          triggeredBy: 'user',
+          startedAt: new Date('2026-05-01T10:00:00Z'),
+          completedAt: new Date('2026-05-01T10:00:05Z'),
+          syncedCount: 15,
+          errorMessage: null,
+          details: null,
+        },
+      ];
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.syncLog.findMany.mockResolvedValue(mockLogs);
+      mockPrisma.syncLog.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/integrations/slack/logs?page=1&limit=20')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].status).toBe('success');
+      expect(res.body.data[0].triggeredBy).toBe('user');
+      expect(res.body.data[0].syncedCount).toBe(15);
+      expect(res.body.pagination).toMatchObject({ page: 1, limit: 20, total: 1 });
+    });
+
+    it('should return 404 when integration not found', async () => {
+      const token = makeToken();
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/integrations/slack/logs')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app).get('/api/integrations/slack/logs');
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 400 for invalid provider', async () => {
+      const token = makeToken();
+
+      const res = await request(app)
+        .get('/api/integrations/invalid/logs')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return empty logs array when no sync history exists', async () => {
+      const token = makeToken();
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'jira' };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.syncLog.findMany.mockResolvedValue([]);
+      mockPrisma.syncLog.count.mockResolvedValue(0);
+
+      const res = await request(app)
+        .get('/api/integrations/jira/logs')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.pagination.total).toBe(0);
     });
   });
 });

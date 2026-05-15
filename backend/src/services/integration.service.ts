@@ -179,7 +179,8 @@ export async function handleOAuthCallback(
 
 export async function syncIntegration(
   userId: string,
-  provider: 'jira' | 'slack' | 'confluence'
+  provider: 'jira' | 'slack' | 'confluence',
+  triggeredBy: 'user' | 'scheduler' = 'user'
 ): Promise<{ jobId: string; status: string }> {
   const integration = await prisma.integration.findUnique({
     where: { userId_provider: { userId, provider } },
@@ -194,13 +195,16 @@ export async function syncIntegration(
     data: { syncStatus: 'syncing' },
   });
 
+  const syncStartedAt = new Date();
+
   runSync(integration as any)
     .then(async ({ syncedItemCount }) => {
+      const completedAt = new Date();
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
           syncStatus: 'success',
-          lastSyncedAt: new Date(),
+          lastSyncedAt: completedAt,
           syncedItemCount,
         },
       });
@@ -214,8 +218,20 @@ export async function syncIntegration(
           syncedItemCount,
         },
       });
+      await prisma.syncLog.create({
+        data: {
+          integrationId: integration.id,
+          provider: provider as any,
+          status: 'success',
+          triggeredBy: triggeredBy as any,
+          startedAt: syncStartedAt,
+          completedAt,
+          syncedCount: syncedItemCount,
+        },
+      });
     })
     .catch(async (err: Error) => {
+      const completedAt = new Date();
       await prisma.integration.update({
         where: { id: integration.id },
         data: { syncStatus: 'failed' },
@@ -228,6 +244,17 @@ export async function syncIntegration(
           eventType: 'sync_failed',
           message: `Sync failed for ${provider}`,
           detail: err.message,
+        },
+      });
+      await prisma.syncLog.create({
+        data: {
+          integrationId: integration.id,
+          provider: provider as any,
+          status: 'failed',
+          triggeredBy: triggeredBy as any,
+          startedAt: syncStartedAt,
+          completedAt,
+          errorMessage: err.message,
         },
       });
     });
@@ -288,7 +315,8 @@ export async function syncAllIntegrations(): Promise<void> {
     try {
       await syncIntegration(
         integration.userId,
-        integration.provider as 'jira' | 'slack' | 'confluence'
+        integration.provider as 'jira' | 'slack' | 'confluence',
+        'scheduler'
       );
     } catch {
     }
@@ -483,6 +511,62 @@ export async function getActivity(
       detail: a.detail,
       syncedItemCount: a.syncedItemCount,
       createdAt: a.createdAt,
+    })),
+    pagination: { page, limit, total },
+  };
+}
+
+export interface SyncLogDTO {
+  id: string;
+  integrationId: string;
+  provider: string;
+  status: string;
+  triggeredBy: string;
+  startedAt: Date;
+  completedAt: Date | null;
+  syncedCount: number | null;
+  errorMessage: string | null;
+  details: unknown;
+}
+
+export async function getSyncLogs(
+  userId: string,
+  provider: 'jira' | 'slack' | 'confluence',
+  page: number,
+  limit: number
+): Promise<{ data: SyncLogDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_provider: { userId, provider } },
+  });
+
+  if (!integration) {
+    const err = new Error('Integration not found') as any;
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const [logs, total] = await Promise.all([
+    prisma.syncLog.findMany({
+      where: { integrationId: integration.id },
+      orderBy: { startedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.syncLog.count({ where: { integrationId: integration.id } }),
+  ]);
+
+  return {
+    data: logs.map((l: any) => ({
+      id: l.id,
+      integrationId: l.integrationId,
+      provider: l.provider,
+      status: l.status,
+      triggeredBy: l.triggeredBy,
+      startedAt: l.startedAt,
+      completedAt: l.completedAt,
+      syncedCount: l.syncedCount,
+      errorMessage: l.errorMessage,
+      details: l.details,
     })),
     pagination: { page, limit, total },
   };

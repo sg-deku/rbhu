@@ -10,6 +10,7 @@ import {
   getConfig as getConfigService,
   updateConfig as updateConfigService,
   getActivity as getActivityService,
+  getSyncLogs as getSyncLogsService,
 } from '../services/integration.service';
 import { verifyOAuthState } from '../utils/oauth-state';
 
@@ -155,6 +156,21 @@ export const listActivity = async (req: any, res: Response) => {
     const result = await getActivityService(req.userId, page, limit);
     res.json({ success: true, data: result.data, pagination: result.pagination });
   } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const listSyncLogs = async (req: any, res: Response) => {
+  try {
+    const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const result = await getSyncLogsService(req.userId, provider, page, limit);
+    res.json({ success: true, data: result.data, pagination: result.pagination });
+  } catch (error: any) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };

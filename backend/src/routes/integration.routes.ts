@@ -12,6 +12,7 @@ import {
   getConfig,
   updateConfig,
   listActivity,
+  listSyncLogs,
 } from '../controllers/integration.controller';
 
 const router = Router();
@@ -26,5 +27,6 @@ router.delete('/:provider', authMiddleware, validateProvider, deleteIntegration)
 router.get('/:provider/resources', authMiddleware, validateProvider, getResources);
 router.get('/:provider/config', authMiddleware, validateProvider, getConfig);
 router.put('/:provider/config', authMiddleware, validateProvider, validateConfigBody, updateConfig);
+router.get('/:provider/logs', authMiddleware, validateProvider, listSyncLogs);
 
 export default router;

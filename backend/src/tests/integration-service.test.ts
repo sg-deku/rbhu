@@ -1,4 +1,4 @@
-import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration, getResources, getConfig, updateConfig, getActivity } from '../services/integration.service';
+import { getIntegrations, initiateOAuth, handleOAuthCallback, syncIntegration, getIntegrationStatus, disconnectIntegration, getResources, getConfig, updateConfig, getActivity, getSyncLogs } from '../services/integration.service';
 import { encrypt, decrypt } from '../utils/encryption';
 import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 
@@ -17,6 +17,11 @@ jest.mock('../config/database', () => ({
       upsert: jest.fn(),
     },
     integrationActivity: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
+    syncLog: {
       create: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
@@ -444,6 +449,235 @@ describe('Integration Service', () => {
 
       expect(error.message).toBe('Integration not found');
       expect(error.statusCode).toBe(404);
+    });
+  });
+
+  describe('syncIntegration with SyncLog creation', () => {
+    it('should create a SyncLog entry with status success on successful sync', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+      mockRunSync.mockResolvedValue({ syncedItemCount: 10 });
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+      mockPrisma.syncLog.create.mockResolvedValue({});
+
+      const result = await syncIntegration('user-1', 'slack');
+
+      expect(result).toEqual({ jobId: 'int-1', status: 'queued' });
+
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockPrisma.syncLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            integrationId: 'int-1',
+            provider: 'slack',
+            status: 'success',
+            triggeredBy: 'user',
+            syncedCount: 10,
+          }),
+        })
+      );
+    });
+
+    it('should create a SyncLog entry with status failed when sync throws', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'slack',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+      mockRunSync.mockRejectedValue(new Error('API rate limit exceeded'));
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+      mockPrisma.syncLog.create.mockResolvedValue({});
+
+      await syncIntegration('user-1', 'slack');
+
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockPrisma.syncLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            integrationId: 'int-1',
+            provider: 'slack',
+            status: 'failed',
+            triggeredBy: 'user',
+            errorMessage: 'API rate limit exceeded',
+          }),
+        })
+      );
+    });
+
+    it('should set triggeredBy to scheduler when called from scheduler', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'jira',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+      mockRunSync.mockResolvedValue({ syncedItemCount: 3 });
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+      mockPrisma.syncLog.create.mockResolvedValue({});
+
+      await syncIntegration('user-1', 'jira', 'scheduler');
+
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockPrisma.syncLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            triggeredBy: 'scheduler',
+          }),
+        })
+      );
+    });
+
+    it('should include startedAt and completedAt timestamps in SyncLog', async () => {
+      const mockIntegration = {
+        id: 'int-1',
+        userId: 'user-1',
+        provider: 'confluence',
+        accessToken: 'encrypted',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        syncStatus: 'idle',
+        lastSyncedAt: null,
+        syncedItemCount: null,
+      };
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.integration.update.mockResolvedValue({ ...mockIntegration, syncStatus: 'syncing' });
+      mockRunSync.mockResolvedValue({ syncedItemCount: 5 });
+      mockPrisma.integrationActivity.create.mockResolvedValue({});
+      mockPrisma.syncLog.create.mockResolvedValue({});
+
+      const before = new Date();
+      await syncIntegration('user-1', 'confluence');
+      await new Promise((r) => setImmediate(r));
+      const after = new Date();
+
+      const createCall = mockPrisma.syncLog.create.mock.calls[0][0].data;
+      expect(createCall.startedAt).toBeInstanceOf(Date);
+      expect(createCall.completedAt).toBeInstanceOf(Date);
+      expect(createCall.startedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(createCall.completedAt.getTime()).toBeLessThanOrEqual(after.getTime());
+    });
+  });
+
+  describe('getSyncLogs', () => {
+    it('should return paginated SyncLog entries for an integration', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      const mockLogs = [
+        {
+          id: 'log-1',
+          integrationId: 'int-1',
+          provider: 'slack',
+          status: 'success',
+          triggeredBy: 'user',
+          startedAt: new Date('2026-05-01T10:00:00Z'),
+          completedAt: new Date('2026-05-01T10:00:05Z'),
+          syncedCount: 42,
+          errorMessage: null,
+          details: null,
+        },
+        {
+          id: 'log-2',
+          integrationId: 'int-1',
+          provider: 'slack',
+          status: 'failed',
+          triggeredBy: 'scheduler',
+          startedAt: new Date('2026-05-01T09:00:00Z'),
+          completedAt: new Date('2026-05-01T09:00:02Z'),
+          syncedCount: 0,
+          errorMessage: 'Token expired',
+          details: null,
+        },
+      ];
+
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.syncLog.findMany.mockResolvedValue(mockLogs);
+      mockPrisma.syncLog.count.mockResolvedValue(2);
+
+      const result = await getSyncLogs('user-1', 'slack', 1, 20);
+
+      expect(mockPrisma.syncLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { integrationId: 'int-1' },
+          orderBy: { startedAt: 'desc' },
+          skip: 0,
+          take: 20,
+        })
+      );
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].status).toBe('success');
+      expect(result.data[0].triggeredBy).toBe('user');
+      expect(result.data[0].syncedCount).toBe(42);
+      expect(result.data[1].status).toBe('failed');
+      expect(result.data[1].errorMessage).toBe('Token expired');
+      expect(result.data[1].triggeredBy).toBe('scheduler');
+      expect(result.pagination).toEqual({ page: 1, limit: 20, total: 2 });
+    });
+
+    it('should apply correct pagination skip for page 2', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'jira' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.syncLog.findMany.mockResolvedValue([]);
+      mockPrisma.syncLog.count.mockResolvedValue(25);
+
+      const result = await getSyncLogs('user-1', 'jira', 2, 10);
+
+      expect(mockPrisma.syncLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 10, take: 10 })
+      );
+      expect(result.pagination).toEqual({ page: 2, limit: 10, total: 25 });
+    });
+
+    it('should throw 404 when integration not found', async () => {
+      mockPrisma.integration.findUnique.mockResolvedValue(null);
+
+      const error = await getSyncLogs('user-1', 'slack', 1, 20).catch((e) => e);
+
+      expect(error.message).toBe('Integration not found');
+      expect(error.statusCode).toBe(404);
+    });
+
+    it('should return empty data array when no logs exist', async () => {
+      const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'confluence' };
+      mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
+      mockPrisma.syncLog.findMany.mockResolvedValue([]);
+      mockPrisma.syncLog.count.mockResolvedValue(0);
+
+      const result = await getSyncLogs('user-1', 'confluence', 1, 20);
+
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(0);
     });
   });
 });

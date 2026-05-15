@@ -221,7 +221,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
         {
           id: 'log-1',
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'success',
+          triggeredBy: 'user',
           startedAt: startedAt1,
           completedAt: completedAt1,
           syncedCount: 20,
@@ -232,7 +234,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
         {
           id: 'log-2',
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'failed',
+          triggeredBy: 'scheduler',
           startedAt: startedAt2,
           completedAt: null,
           syncedCount: 0,
@@ -243,7 +247,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
         {
           id: 'log-3',
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'partial',
+          triggeredBy: 'user',
           startedAt: new Date(),
           completedAt: null,
           syncedCount: 5,
@@ -263,7 +269,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       const log1 = await mockPrisma.syncLog.create({
         data: {
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'success',
+          triggeredBy: 'user',
           startedAt: startedAt1,
           completedAt: completedAt1,
           syncedCount: 20,
@@ -274,7 +282,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       const log2 = await mockPrisma.syncLog.create({
         data: {
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'failed',
+          triggeredBy: 'scheduler',
           startedAt: startedAt2,
           errorMessage: 'Connection timeout',
         },
@@ -283,7 +293,9 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       const log3 = await mockPrisma.syncLog.create({
         data: {
           integrationId: 'int-1',
+          provider: 'jira',
           status: 'partial',
+          triggeredBy: 'user',
           syncedCount: 5,
           errorMessage: 'Rate limited on some items',
           details: { failed: ['item-3'] },
@@ -291,15 +303,20 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       });
 
       expect(log1.status).toBe('success');
+      expect(log1.provider).toBe('jira');
+      expect(log1.triggeredBy).toBe('user');
       expect(log1.syncedCount).toBe(20);
       expect(log1.completedAt).toBe(completedAt1);
       expect(log1.details).toEqual({ pages: 2 });
 
       expect(log2.status).toBe('failed');
+      expect(log2.provider).toBe('jira');
+      expect(log2.triggeredBy).toBe('scheduler');
       expect(log2.errorMessage).toBe('Connection timeout');
       expect(log2.completedAt).toBeNull();
 
       expect(log3.status).toBe('partial');
+      expect(log3.triggeredBy).toBe('user');
       expect(log3.syncedCount).toBe(5);
 
       const allLogs = await mockPrisma.syncLog.findMany({
@@ -311,7 +328,72 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       expect(allLogs.map((l: any) => l.status)).toEqual(['success', 'failed', 'partial']);
       allLogs.forEach((log: any) => {
         expect(log.integrationId).toBe('int-1');
+        expect(log.provider).toBe('jira');
         expect(log.integration).toMatchObject({ id: 'int-1', provider: 'jira' });
+      });
+    });
+
+    it('should allow querying SyncLogs by provider for cross-integration reporting', async () => {
+      const mockSlackLogs = [
+        {
+          id: 'log-s1',
+          integrationId: 'int-slack',
+          provider: 'slack',
+          status: 'success',
+          triggeredBy: 'scheduler',
+          startedAt: new Date(),
+          completedAt: new Date(),
+          syncedCount: 10,
+          errorMessage: null,
+          details: null,
+        },
+      ];
+
+      const mockJiraLogs = [
+        {
+          id: 'log-j1',
+          integrationId: 'int-jira',
+          provider: 'jira',
+          status: 'failed',
+          triggeredBy: 'user',
+          startedAt: new Date(),
+          completedAt: null,
+          syncedCount: 0,
+          errorMessage: 'Auth error',
+          details: null,
+        },
+      ];
+
+      mockPrisma.syncLog.findMany
+        .mockResolvedValueOnce(mockSlackLogs)
+        .mockResolvedValueOnce(mockJiraLogs);
+
+      const slackLogs = await mockPrisma.syncLog.findMany({ where: { provider: 'slack' } });
+      const jiraLogs = await mockPrisma.syncLog.findMany({ where: { provider: 'jira' } });
+
+      expect(slackLogs).toHaveLength(1);
+      expect(slackLogs[0].provider).toBe('slack');
+      expect(slackLogs[0].triggeredBy).toBe('scheduler');
+
+      expect(jiraLogs).toHaveLength(1);
+      expect(jiraLogs[0].provider).toBe('jira');
+      expect(jiraLogs[0].triggeredBy).toBe('user');
+      expect(jiraLogs[0].errorMessage).toBe('Auth error');
+    });
+
+    it('should support filtering SyncLogs by triggeredBy for audit reporting', async () => {
+      const schedulerLogs = [
+        { id: 'log-1', triggeredBy: 'scheduler', status: 'success', provider: 'slack' },
+        { id: 'log-2', triggeredBy: 'scheduler', status: 'failed', provider: 'jira' },
+      ];
+
+      mockPrisma.syncLog.findMany.mockResolvedValue(schedulerLogs);
+
+      const result = await mockPrisma.syncLog.findMany({ where: { triggeredBy: 'scheduler' } });
+
+      expect(result).toHaveLength(2);
+      result.forEach((log: any) => {
+        expect(log.triggeredBy).toBe('scheduler');
       });
     });
   });

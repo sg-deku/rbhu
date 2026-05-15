@@ -76,6 +76,11 @@ enum SyncLogStatus {
   partial
 }
 
+enum SyncTrigger {
+  user
+  scheduler
+}
+
 model Integration {
   id              String              @id @default(cuid())
   userId          String
@@ -137,10 +142,12 @@ model IntegrationActivity {
 }
 
 model SyncLog {
-  id            String        @id @default(cuid())
+  id            String              @id @default(cuid())
   integrationId String
+  provider      IntegrationProvider
   status        SyncLogStatus
-  startedAt     DateTime      @default(now())
+  triggeredBy   SyncTrigger         @default(user)
+  startedAt     DateTime            @default(now())
   completedAt   DateTime?
   syncedCount   Int?
   errorMessage  String?
@@ -149,6 +156,7 @@ model SyncLog {
   integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
   @@index([integrationId])
+  @@index([startedAt])
 }
 
 model DocumentMetadata {
