@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const API_URL = 'http://localhost:5000/api'
+const API_URL = 'http://localhost:5001/api'
 
 async function loginAndSetToken(page: any) {
   const res = await page.request.post(`${API_URL}/auth/login`, {

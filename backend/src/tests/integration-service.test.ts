@@ -104,7 +104,7 @@ describe('Integration Service', () => {
     it('should return authorizationUrl containing slack.com/oauth for slack', async () => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
 
       const result = await initiateOAuth('user-1', 'slack');
 
@@ -116,7 +116,7 @@ describe('Integration Service', () => {
     it('should include audience=api.atlassian.com for jira', async () => {
       process.env.JIRA_CLIENT_ID = 'jira-client-id';
       process.env.JIRA_CLIENT_SECRET = 'jira-secret';
-      process.env.JIRA_REDIRECT_URI = 'http://localhost:5000/api/integrations/jira/callback';
+      process.env.JIRA_REDIRECT_URI = 'http://localhost:5001/api/integrations/jira/callback';
 
       const result = await initiateOAuth('user-1', 'jira');
 
@@ -129,7 +129,7 @@ describe('Integration Service', () => {
     it('should call prisma upsert with encrypted tokens and log connected activity', async () => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
 
       const state = generateOAuthState('user-1', 'slack');
 
@@ -381,7 +381,7 @@ describe('Integration Service', () => {
     beforeEach(() => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
       process.env.INTEGRATION_TOKEN_ENCRYPTION_KEY = 'a'.repeat(64);
     });
 

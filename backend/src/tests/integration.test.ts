@@ -89,7 +89,7 @@ describe('Integration Routes', () => {
     it('should return 200 with authorizationUrl for valid provider', async () => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
 
       const token = makeToken();
       const res = await request(app)
@@ -120,7 +120,7 @@ describe('Integration Routes', () => {
     it('should redirect to connected URL on successful code exchange', async () => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
 
       const state = generateOAuthState('user-1', 'slack');
 
@@ -229,7 +229,7 @@ describe('Integration Routes', () => {
     it('should return 200 with success message when integration exists', async () => {
       process.env.SLACK_CLIENT_ID = 'slack-client-id';
       process.env.SLACK_CLIENT_SECRET = 'slack-secret';
-      process.env.SLACK_REDIRECT_URI = 'http://localhost:5000/api/integrations/slack/callback';
+      process.env.SLACK_REDIRECT_URI = 'http://localhost:5001/api/integrations/slack/callback';
 
       const token = makeToken();
       const { encrypt } = jest.requireActual('../utils/encryption') as any;
