@@ -54,6 +54,12 @@ enum IntegrationEventType {
   config_updated
 }
 
+enum SyncLogStatus {
+  success
+  failed
+  partial
+}
+
 model Integration {
   id              String              @id @default(cuid())
   userId          String
@@ -76,6 +82,7 @@ model Integration {
   user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   config            IntegrationConfig?
   activities        IntegrationActivity[]
+  syncLogs          SyncLog[]
 
   @@unique([userId, provider])
   @@index([userId])
@@ -105,5 +112,20 @@ model IntegrationActivity {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([integrationId])
+}
+
+model SyncLog {
+  id            String        @id @default(cuid())
+  integrationId String
+  status        SyncLogStatus
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  syncedCount   Int?
+  errorMessage  String?
+  details       Json?
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
   @@index([integrationId])
 }
