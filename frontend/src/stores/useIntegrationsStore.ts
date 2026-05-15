@@ -14,7 +14,7 @@ interface IntegrationsStore {
   activityTotal: number
   activityLoading: boolean
   fetchIntegrations: () => Promise<void>
-  connect: (_provider: Provider) => Promise<void>
+  connect: (_provider: Provider, _customConfig?: { clientId: string; clientSecret: string }) => Promise<void>
   triggerSync: (_provider: Provider) => Promise<void>
   disconnect: (_provider: Provider) => Promise<void>
   fetchActivity: (_page?: number) => Promise<void>
@@ -51,10 +51,10 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
     }
   },
 
-  connect: async (_provider: Provider) => {
+  connect: async (_provider: Provider, _customConfig?: { clientId: string; clientSecret: string }) => {
     set({ connectingProvider: _provider })
     try {
-      const authorizationUrl = await integrationService.initiateConnect(_provider)
+      const authorizationUrl = await integrationService.initiateConnect(_provider, _customConfig)
       window.location.href = authorizationUrl
     } catch {
       set({ connectingProvider: null, errorMessage: 'Failed to initiate connection' })

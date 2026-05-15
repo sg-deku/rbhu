@@ -59,6 +59,8 @@ model Integration {
   status          IntegrationStatus   @default(disconnected)
   accessToken     String
   refreshToken    String?
+  clientId        String?
+  clientSecret    String?
   tokenExpiresAt  DateTime?
   accountId       String?
   accountName     String?

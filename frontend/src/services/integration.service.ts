@@ -7,8 +7,8 @@ export const integrationService = {
     return data.data
   },
 
-  initiateConnect: async (provider: Provider): Promise<string> => {
-    const data = await api.post(`/integrations/${provider}/connect`, {})
+  initiateConnect: async (provider: Provider, customConfig?: { clientId: string; clientSecret: string }): Promise<string> => {
+    const data = await api.post(`/integrations/${provider}/connect`, customConfig || {})
     return data.data.authorizationUrl
   },
 

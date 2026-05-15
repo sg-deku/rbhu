@@ -24,12 +24,14 @@ export async function refreshTokenIfNeeded(integration: Integration): Promise<In
   if (integration.tokenExpiresAt > fiveMinutesFromNow) return integration;
 
   const config = getProviderConfig(integration.provider as 'jira' | 'slack' | 'confluence');
+  const clientId = integration.clientId || config.clientId;
+  const clientSecret = integration.clientSecret ? decrypt(integration.clientSecret) : config.clientSecret;
 
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: decrypt(integration.refreshToken),
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
+    client_id: clientId,
+    client_secret: clientSecret,
   });
 
   const tokenRes = await axios.post(config.tokenUrl, params.toString(), {

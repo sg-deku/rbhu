@@ -4,8 +4,8 @@ export const integrationService = {
         const data = await api.get('/integrations');
         return data.data;
     },
-    initiateConnect: async (provider) => {
-        const data = await api.post(`/integrations/${provider}/connect`, {});
+    initiateConnect: async (provider, customConfig) => {
+        const data = await api.post(`/integrations/${provider}/connect`, customConfig || {});
         return data.data.authorizationUrl;
     },
     triggerSync: async (provider) => {

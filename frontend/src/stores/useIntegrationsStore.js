@@ -29,10 +29,10 @@ export const useIntegrationsStore = create((set, get) => ({
             set({ loading: false });
         }
     },
-    connect: async (_provider) => {
+    connect: async (_provider, _customConfig) => {
         set({ connectingProvider: _provider });
         try {
-            const authorizationUrl = await integrationService.initiateConnect(_provider);
+            const authorizationUrl = await integrationService.initiateConnect(_provider, _customConfig);
             window.location.href = authorizationUrl;
         }
         catch {

@@ -61,11 +61,11 @@ const IntegrationsPage = () => {
     const handleConnect = (provider) => {
         setConnectingModalProvider(provider);
     };
-    const handleModalConfirm = async () => {
+    const handleModalConfirm = async (config) => {
         if (!connectingModalProvider)
             return;
         setConnectingModalProvider(null);
-        await connect(connectingModalProvider);
+        await connect(connectingModalProvider, config);
     };
     const handleModalCancel = () => {
         setConnectingModalProvider(null);

@@ -27,7 +27,14 @@ export const listIntegrations = async (req: any, res: Response) => {
 export const initiateConnect = async (req: any, res: Response) => {
   try {
     const provider = req.params.provider as 'jira' | 'slack' | 'confluence';
-    const result = await initiateOAuth(req.userId, provider);
+    const { clientId, clientSecret } = req.body || {};
+    
+    let customConfig;
+    if (clientId && clientSecret) {
+      customConfig = { clientId, clientSecret };
+    }
+    
+    const result = await initiateOAuth(req.userId, provider, customConfig);
     res.json({ success: true, data: result });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

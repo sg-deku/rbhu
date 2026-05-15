@@ -43,15 +43,17 @@ export async function getIntegrations(userId: string): Promise<IntegrationDTO[]>
 
 export async function initiateOAuth(
   userId: string,
-  provider: 'jira' | 'slack' | 'confluence'
+  provider: 'jira' | 'slack' | 'confluence',
+  customConfig?: { clientId: string; clientSecret: string }
 ): Promise<{ authorizationUrl: string }> {
-  const state = generateOAuthState(userId, provider);
+  const state = generateOAuthState(userId, provider, customConfig);
   const config = getProviderConfig(provider);
+  const clientId = customConfig?.clientId || config.clientId;
   const scopeStr = config.scopes.join('%20');
 
   let url =
     `${config.authorizationUrl}` +
-    `?client_id=${config.clientId}` +
+    `?client_id=${clientId}` +
     `&redirect_uri=${encodeURIComponent(config.redirectUri)}` +
     `&scope=${scopeStr}` +
     `&response_type=code` +
@@ -83,14 +85,17 @@ export async function handleOAuthCallback(
   code: string,
   state: string
 ): Promise<{ userId: string; provider: string }> {
-  const { userId, provider } = verifyOAuthState(state);
+  const { userId, provider, customConfig } = verifyOAuthState(state);
   const config = getProviderConfig(provider as 'jira' | 'slack' | 'confluence');
+
+  const clientId = customConfig?.clientId || config.clientId;
+  const clientSecret = customConfig?.clientSecret || config.clientSecret;
 
   const params = new URLSearchParams({
     code,
     grant_type: 'authorization_code',
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
+    client_id: clientId,
+    client_secret: clientSecret,
     redirect_uri: config.redirectUri,
   });
 
@@ -105,6 +110,8 @@ export async function handleOAuthCallback(
 
   const encryptedAccessToken = encrypt(rawAccessToken);
   const encryptedRefreshToken = rawRefreshToken ? encrypt(rawRefreshToken) : null;
+  const encryptedClientId = customConfig?.clientId || null;
+  const encryptedClientSecret = customConfig?.clientSecret ? encrypt(customConfig.clientSecret) : null;
   const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
 
   let accountName: string | null = null;
@@ -127,6 +134,8 @@ export async function handleOAuthCallback(
       status: 'connected',
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
+      clientId: encryptedClientId,
+      clientSecret: encryptedClientSecret,
       tokenExpiresAt,
       accountName,
       accountEmail,
@@ -136,6 +145,8 @@ export async function handleOAuthCallback(
       status: 'connected',
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
+      clientId: encryptedClientId,
+      clientSecret: encryptedClientSecret,
       tokenExpiresAt,
       accountName,
       accountEmail,
