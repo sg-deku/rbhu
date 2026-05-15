@@ -14,3 +14,4 @@ prisma/*.db
 frontend/playwright-report/
 frontend/test-results/
 .zencoder/
+frontend/public/

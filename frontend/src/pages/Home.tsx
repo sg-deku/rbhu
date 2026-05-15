@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import SearchInput from '../components/SearchInput'
 import AnswerView from '../components/AnswerView'
 import SourceSidebar, { Source } from '../components/SourceSidebar'
@@ -66,24 +65,15 @@ const Home = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="flex justify-end mb-4">
-        <Link 
-          to="/settings/integrations" 
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm font-medium"
-        >
-          Manage Integrations
-        </Link>
-      </div>
-
-      <div className={`transition-all duration-500 ${currentQuery ? 'mt-8' : 'mt-20'}`}>
+    <div className="w-full">
+      <div className={`transition-all duration-500 ${currentQuery ? 'mt-4' : 'mt-24 max-w-3xl mx-auto'}`}>
         {!currentQuery && (
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900 mb-4">
               What do you want to know?
             </h1>
-            <p className="text-xl text-gray-500">
-              Search through your documents and get instant answers.
+            <p className="text-lg sm:text-xl text-gray-500">
+              Search through your connected apps and get instant answers.
             </p>
           </div>
         )}
@@ -91,20 +81,22 @@ const Home = () => {
         <SearchInput onSearch={handleSearch} />
         
         {!currentQuery && (
-          <QueryHistory 
-            history={history} 
-            onSelectQuery={handleSearch} 
-            onClearHistory={clearHistory} 
-          />
+          <div className="mt-10">
+            <QueryHistory 
+              history={history} 
+              onSelectQuery={handleSearch} 
+              onClearHistory={clearHistory} 
+            />
+          </div>
         )}
       </div>
 
       {currentQuery && (
-        <div className="mt-12 flex flex-col lg:flex-row gap-12">
+        <div className="mt-10 flex flex-col xl:flex-row gap-8">
           <div className="flex-1 min-w-0">
             <AnswerView answer={answer} isLoading={isLoading} />
           </div>
-          <div className="w-full lg:w-80 flex-shrink-0">
+          <div className="w-full xl:w-96 flex-shrink-0">
             <SourceSidebar sources={sources} isLoading={isLoading} />
           </div>
         </div>
@@ -113,4 +105,4 @@ const Home = () => {
   )
 }
 
-export default Home;
+export default Home

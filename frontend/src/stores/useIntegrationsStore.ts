@@ -36,7 +36,7 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
   fetchIntegrations: async () => {
     set({ loading: true })
     try {
-      const integrations = await integrationService.getIntegrations()
+      const integrations = await integrationService.getIntegrations() || []
       const { syncingProviders } = get()
       const updatedSyncingProviders = new Set(syncingProviders)
       for (const provider of Array.from(syncingProviders)) {
@@ -47,7 +47,7 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
       }
       set({ integrations, loading: false, syncingProviders: updatedSyncingProviders })
     } catch {
-      set({ loading: false })
+      set({ loading: false, integrations: [] })
     }
   },
 
@@ -94,9 +94,9 @@ export const useIntegrationsStore = create<IntegrationsStore>((set, get) => ({
     set({ activityLoading: true, activityPage: _page })
     try {
       const result = await integrationService.getActivity(_page)
-      set({ activities: result.data, activityTotal: result.pagination.total, activityLoading: false })
+      set({ activities: result.data || [], activityTotal: result.pagination?.total || 0, activityLoading: false })
     } catch {
-      set({ activityLoading: false })
+      set({ activityLoading: false, activities: [] })
     }
   },
 

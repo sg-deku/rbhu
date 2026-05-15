@@ -77,6 +77,6 @@ describe('ActivityLog', () => {
         onPageChange={() => {}}
       />
     )
-    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /prev/i })).toBeDisabled()
   })
 })

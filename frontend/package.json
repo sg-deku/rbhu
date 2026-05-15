@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "vercel-build": "tsc && vite build && cp -r dist public",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -18,6 +19,7 @@
     "clsx": "latest",
     "date-fns": "^4.1.0",
     "framer-motion": "latest",
+    "lucide-react": "^1.16.0",
     "next": "latest",
     "postcss": "latest",
     "react": "latest",

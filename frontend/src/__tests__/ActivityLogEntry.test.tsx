@@ -29,8 +29,8 @@ describe('ActivityLogEntry', () => {
     }
     render(<ActivityLogEntry activity={failedActivity} />)
     expect(screen.getByText('Sync Failed')).toBeInTheDocument()
-    expect(screen.getByText(/show error/i)).toBeInTheDocument()
-    const detailsEl = screen.getByText(/show error/i).closest('details')
+    expect(screen.getByText(/view error details/i)).toBeInTheDocument()
+    const detailsEl = screen.getByText(/view error details/i).closest('details')
     expect(detailsEl).toBeInTheDocument()
   })
 

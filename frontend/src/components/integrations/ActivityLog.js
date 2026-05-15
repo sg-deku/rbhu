@@ -1,9 +1,0 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import ActivityLogEntry from './ActivityLogEntry';
-const ActivityLog = ({ activities, page, total, limit, onPageChange, loading }) => {
-    const totalPages = Math.ceil(total / limit);
-    const hasPrev = page > 1;
-    const hasNext = page < totalPages;
-    return (_jsxs("div", { className: "mt-8", children: [_jsx("h2", { className: "text-lg font-semibold text-gray-900 mb-4", children: "Activity Log" }), _jsxs("div", { className: "bg-white rounded-lg shadow border border-gray-200", children: [loading ? (_jsx("div", { className: "flex justify-center items-center py-8", children: _jsx("div", { className: "w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" }) })) : activities.length === 0 ? (_jsx("p", { className: "text-sm text-gray-500 text-center py-8", children: "No activity yet" })) : (_jsx("div", { className: "px-4", children: activities.map((activity) => (_jsx(ActivityLogEntry, { activity: activity }, activity.id))) })), total > 0 && (_jsxs("div", { className: "flex items-center justify-between px-4 py-3 border-t border-gray-100", children: [_jsxs("span", { className: "text-sm text-gray-500", children: ["Page ", page, " of ", totalPages] }), _jsxs("div", { className: "flex gap-2", children: [_jsx("button", { onClick: () => onPageChange(page - 1), disabled: !hasPrev, className: "px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed", children: "Previous" }), _jsx("button", { onClick: () => onPageChange(page + 1), disabled: !hasNext, className: "px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed", children: "Next" })] })] }))] })] }));
-};
-export default ActivityLog;
