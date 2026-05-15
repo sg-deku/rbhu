@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useIntegrationsStore } from '../../stores/useIntegrationsStore'
 import IntegrationCard from '../../components/integrations/IntegrationCard'
 import ConnectModal from '../../components/integrations/ConnectModal'
@@ -14,6 +15,19 @@ const PROVIDERS: Provider[] = ['jira', 'slack', 'confluence']
 interface ToastState {
   message: string
   type: 'success' | 'error'
+}
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const } },
 }
 
 const IntegrationsPage = () => {
@@ -122,44 +136,95 @@ const IntegrationsPage = () => {
     setConfiguringProvider(null)
   }
 
+  const connectedCount = integrations.filter((i) => i.status === 'connected').length
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Integrations</h1>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <nav className="flex items-center gap-2 text-sm mb-8" aria-label="Breadcrumb">
+          <span style={{ color: 'var(--color-text-secondary)' }}>Settings</span>
+          <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="font-medium" style={{ color: 'var(--color-text)' }}>Integrations</span>
+        </nav>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="mb-10">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--color-text)' }}>
+                Integrations
+              </h1>
+              <p className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
+                Connect your tools to sync data and keep everything in one place.
+              </p>
+            </div>
+            {!loading && connectedCount > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium"
+                style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' }}
+              >
+                {connectedCount} of {PROVIDERS.length} connected
+              </motion.div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {PROVIDERS.map((provider) => {
-            const integration = integrations.find((i) => i.provider === provider) ?? null
-            return (
-              <IntegrationCard
-                key={provider}
-                provider={provider}
-                integration={integration}
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-                onSyncNow={handleSyncNow}
-                onConfigure={handleConfigure}
-                connectingProvider={connectingProvider}
-                disconnectingProvider={disconnectingProvider}
-                syncingProviders={syncingProviders}
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {PROVIDERS.map((p) => (
+              <div
+                key={p}
+                className="rounded-xl border animate-pulse"
+                style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', height: '220px' }}
               />
-            )
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {PROVIDERS.map((provider) => {
+              const integration = integrations.find((i) => i.provider === provider) ?? null
+              return (
+                <motion.div key={provider} variants={itemVariants}>
+                  <IntegrationCard
+                    provider={provider}
+                    integration={integration}
+                    onConnect={handleConnect}
+                    onDisconnect={handleDisconnect}
+                    onSyncNow={handleSyncNow}
+                    onConfigure={handleConfigure}
+                    connectingProvider={connectingProvider}
+                    disconnectingProvider={disconnectingProvider}
+                    syncingProviders={syncingProviders}
+                  />
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        )}
 
-      <ActivityLog
-        activities={activities}
-        page={activityPage}
-        total={activityTotal}
-        limit={20}
-        onPageChange={(page) => fetchActivity(page)}
-        loading={activityLoading}
-      />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.4, ease: 'easeOut' }}
+        >
+          <ActivityLog
+            activities={activities}
+            page={activityPage}
+            total={activityTotal}
+            limit={20}
+            onPageChange={(page) => fetchActivity(page)}
+            loading={activityLoading}
+          />
+        </motion.div>
+      </div>
 
       {connectingModalProvider && (
         <ConnectModal
