@@ -93,7 +93,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     : '?'
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gray-50 text-gray-900">
+    <div className="flex h-screen w-screen max-w-[100vw] overflow-hidden bg-gray-50 text-gray-900">
       {/* Sidebar */}
       <motion.aside
         initial={false}
@@ -103,13 +103,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       >
         <div className="h-16 flex items-center px-6 border-b border-gray-200 shrink-0">
           <div className="flex items-center overflow-hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" className="h-8 w-auto text-indigo-600 fill-current shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" className="h-8 w-auto shrink-0">
               <defs>
                 <style>
                   {`@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');`}
                 </style>
               </defs>
-              <text x="0" y="92" fontFamily="'Fredoka One', 'Quicksand', 'Nunito', sans-serif" fontWeight="400" fontSize="96" letterSpacing="-3">rbhu</text>
+              <text x="0" y="92" fontFamily="'Fredoka One', 'Quicksand', 'Nunito', sans-serif" fontWeight="400" fontSize="96" fill="#111111" letterSpacing="-3">rbhu</text>
             </svg>
           </div>
         </div>
@@ -227,7 +227,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
           <div className="flex items-center gap-4">
             <button
@@ -270,15 +270,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <div className="relative shrink-0" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(o => !o)}
-                className="flex items-center gap-2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-200 shrink-0">
-                  {initials}
-                </div>
-                <div className="hidden sm:block text-left text-sm max-w-[120px]">
+                <div className="text-sm max-w-[150px]">
                   <p className="font-medium text-gray-900 truncate">{user?.name}</p>
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block shrink-0" />
+                <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
               </button>
 
               <AnimatePresence>

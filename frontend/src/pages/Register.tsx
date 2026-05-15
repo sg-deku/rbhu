@@ -29,13 +29,15 @@ const Register = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full border border-white" />
         </div>
         <div className="relative z-10 text-white text-center px-12">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold tracking-tight">RBHU</span>
+          <div className="flex items-center justify-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" className="h-12 w-auto shrink-0">
+              <defs>
+                <style>
+                  {`@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');`}
+                </style>
+              </defs>
+              <text x="0" y="92" fontFamily="'Fredoka One', 'Quicksand', 'Nunito', sans-serif" fontWeight="400" fontSize="96" fill="#ffffff" letterSpacing="-3">rbhu</text>
+            </svg>
           </div>
           <h2 className="text-3xl font-bold mb-4 leading-snug">Start searching<br />smarter today.</h2>
           <p className="text-base text-white text-opacity-80 leading-relaxed">Connect Jira, Slack, Confluence and more — get instant, intelligent answers from all your team's knowledge.</p>
@@ -49,13 +51,15 @@ const Register = () => {
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-md"
         >
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>RBHU</span>
+          <div className="lg:hidden flex items-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" className="h-8 w-auto shrink-0">
+              <defs>
+                <style>
+                  {`@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');`}
+                </style>
+              </defs>
+              <text x="0" y="92" fontFamily="'Fredoka One', 'Quicksand', 'Nunito', sans-serif" fontWeight="400" fontSize="96" fill="#111111" letterSpacing="-3">rbhu</text>
+            </svg>
           </div>
 
           <div className="mb-8">

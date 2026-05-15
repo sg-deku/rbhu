@@ -150,7 +150,7 @@ const IntegrationsPage = () => {
     setConfiguringProvider(null)
   }
 
-  const activeIntegrations = integrations.filter(i => i.status === 'connected' || i.status === 'error')
+  const activeIntegrations = (integrations || []).filter(i => i.status === 'connected' || i.status === 'error')
   const activeProviders = new Set(activeIntegrations.map(i => i.provider))
   const availableProviders = PROVIDERS.filter(p => !activeProviders.has(p))
 

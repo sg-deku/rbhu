@@ -32,7 +32,7 @@ const ResourceList = ({ resources, selectedIds, onChange, loading }: ResourceLis
 
   return (
     <ul className="space-y-1">
-      {resources.map((resource) => (
+      {(resources || []).map((resource) => (
         <li key={resource.id}>
           <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
             <input
