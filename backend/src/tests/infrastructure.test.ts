@@ -1,3 +1,5 @@
+import request from 'supertest';
+import app from '../server';
 import prisma from '../config/database';
 
 jest.mock('../config/database', () => ({
@@ -467,6 +469,27 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
 
       expect(logsAfter).toHaveLength(0);
       expect(docsAfter).toHaveLength(0);
+    });
+  });
+
+  describe('Infrastructure E2E', () => {
+    it('should include organizationId in user profile', async () => {
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign({ userId: 'user-1' }, process.env.JWT_SECRET || 'secret');
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        name: 'Test User',
+        email: 'test@example.com',
+        organizationId: 'org-1',
+      });
+
+      const res = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.organizationId).toBe('org-1');
     });
   });
 });
