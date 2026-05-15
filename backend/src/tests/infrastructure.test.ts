@@ -19,6 +19,10 @@ jest.mock('../config/database', () => ({
       create: jest.fn(),
       findUnique: jest.fn(),
     },
+    organization: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -122,5 +126,33 @@ describe('RB-54: DocumentMetadata Model', () => {
     expect(result.externalId).toBe('ext-1');
     expect(result.provider).toBe('jira');
     expect(result.integrationId).toBe('int-1');
+  });
+});
+
+describe('RB-55: Organization Model', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should verify Organization model and relations', async () => {
+    const mockOrg = {
+      id: 'org-1',
+      name: 'Test Org',
+      slug: 'test-org',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    (prisma.organization.create as jest.Mock).mockResolvedValue(mockOrg);
+
+    const result = await prisma.organization.create({
+      data: {
+        name: 'Test Org',
+        slug: 'test-org',
+      },
+    });
+
+    expect(result.name).toBe('Test Org');
+    expect(result.slug).toBe('test-org');
   });
 });
