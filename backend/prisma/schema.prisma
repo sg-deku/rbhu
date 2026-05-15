@@ -82,11 +82,12 @@ model Integration {
   organizationId  String?
   provider        IntegrationProvider
   status          IntegrationStatus   @default(disconnected)
-  accessToken     String
+  accessToken     String?
   refreshToken    String?
   clientId        String?
   clientSecret    String?
   tokenExpiresAt  DateTime?
+  tokenUpdatedAt  DateTime?
   accountId       String?
   accountName     String?
   accountEmail    String?

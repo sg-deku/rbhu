@@ -126,6 +126,8 @@ export async function handleOAuthCallback(
     accountEmail = account.accountEmail;
   }
 
+  const tokenUpdatedAt = new Date();
+
   await prisma.integration.upsert({
     where: { userId_provider: { userId, provider: provider as any } },
     create: {
@@ -137,6 +139,7 @@ export async function handleOAuthCallback(
       clientId: encryptedClientId,
       clientSecret: encryptedClientSecret,
       tokenExpiresAt,
+      tokenUpdatedAt,
       accountName,
       accountEmail,
       syncStatus: 'idle',
@@ -148,6 +151,7 @@ export async function handleOAuthCallback(
       clientId: encryptedClientId,
       clientSecret: encryptedClientSecret,
       tokenExpiresAt,
+      tokenUpdatedAt,
       accountName,
       accountEmail,
       syncStatus: 'idle',
@@ -263,7 +267,7 @@ export async function disconnectIntegration(
   }
 
   const config = getProviderConfig(provider);
-  if (config.revokeUrl) {
+  if (config.revokeUrl && integration.accessToken) {
     try {
       const rawToken = decrypt(integration.accessToken);
       await axios.post(config.revokeUrl, { token: rawToken });
@@ -325,6 +329,11 @@ export async function getResources(
   }
 
   const fresh = await refreshTokenIfNeeded(integration as any);
+  if (!fresh.accessToken) {
+    const err = new Error('No access token available') as any;
+    err.code = 'REAUTH_REQUIRED';
+    throw err;
+  }
   const rawToken = decrypt(fresh.accessToken);
 
   let resources: ResourceDTO[] = [];

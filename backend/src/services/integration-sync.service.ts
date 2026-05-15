@@ -7,7 +7,7 @@ type Integration = {
   id: string;
   userId: string;
   provider: string;
-  accessToken: string;
+  accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: Date | null;
   syncStatus: string;
@@ -53,6 +53,7 @@ export async function refreshTokenIfNeeded(integration: Integration): Promise<In
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
       tokenExpiresAt,
+      tokenUpdatedAt: new Date(),
     },
   });
 
@@ -61,6 +62,7 @@ export async function refreshTokenIfNeeded(integration: Integration): Promise<In
 
 export async function syncSlack(integration: Integration): Promise<{ syncedItemCount: number }> {
   const fresh = await refreshTokenIfNeeded(integration);
+  if (!fresh.accessToken) throw new Error('No access token available for sync');
   const accessToken = decrypt(fresh.accessToken);
 
   const response = await axios.get('https://slack.com/api/conversations.list', {
@@ -72,6 +74,7 @@ export async function syncSlack(integration: Integration): Promise<{ syncedItemC
 
 export async function syncJira(integration: Integration): Promise<{ syncedItemCount: number }> {
   const fresh = await refreshTokenIfNeeded(integration);
+  if (!fresh.accessToken) throw new Error('No access token available for sync');
   const accessToken = decrypt(fresh.accessToken);
 
   const resourcesRes = await axios.get('https://api.atlassian.com/oauth/token/accessible-resources', {
@@ -91,6 +94,7 @@ export async function syncJira(integration: Integration): Promise<{ syncedItemCo
 
 export async function syncConfluence(integration: Integration): Promise<{ syncedItemCount: number }> {
   const fresh = await refreshTokenIfNeeded(integration);
+  if (!fresh.accessToken) throw new Error('No access token available for sync');
   const accessToken = decrypt(fresh.accessToken);
 
   const resourcesRes = await axios.get('https://api.atlassian.com/oauth/token/accessible-resources', {
