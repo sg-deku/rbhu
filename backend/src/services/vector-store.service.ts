@@ -19,7 +19,15 @@ export const ensureIndexExists = async (indexName: string = VECTOR_INDEX_NAME) =
             index: true,
             similarity: 'cosine'
           },
-          content: { type: 'text' }
+          content: { type: 'text' },
+          metadata: {
+            properties: {
+              source_url: { type: 'keyword' },
+              provider: { type: 'keyword' },
+              original_id: { type: 'keyword' },
+              timestamp: { type: 'date' }
+            }
+          }
         }
       }
     });
