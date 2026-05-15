@@ -163,8 +163,10 @@ model DocumentMetadata {
   id             String              @id @default(cuid())
   externalId     String
   provider       IntegrationProvider
+  contentType    String
   sourceUrl      String?
   title          String?
+  metadata       Json?
   lastSyncedAt   DateTime?
   integrationId  String
   userId         String
@@ -176,8 +178,10 @@ model DocumentMetadata {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id])
 
-  @@unique([provider, externalId])
-  @@index([integrationId])
+  @@unique([integrationId, externalId])
   @@index([userId])
   @@index([organizationId])
+  @@index([integrationId])
+  @@index([lastSyncedAt])
+  @@index([contentType])
 }

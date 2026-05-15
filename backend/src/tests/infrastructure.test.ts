@@ -25,7 +25,9 @@ jest.mock('../config/database', () => ({
     },
     documentMetadata: {
       create: jest.fn(),
+      upsert: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
     },
     $connect: jest.fn(),
   },
@@ -398,15 +400,17 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
     });
   });
 
-  describe('DocumentMetadata unique constraint on (provider, externalId)', () => {
-    it('should create DocumentMetadata and verify all fields', async () => {
+  describe('DocumentMetadata unique constraint on (integrationId, externalId)', () => {
+    it('should create DocumentMetadata and verify all fields including contentType and metadata', async () => {
       const now = new Date();
       const mockDoc = {
         id: 'doc-1',
         externalId: 'JIRA-123',
         provider: 'jira',
+        contentType: 'project',
         sourceUrl: 'https://acme.atlassian.net/browse/JIRA-123',
         title: 'Fix login bug',
+        metadata: { key: 'JIRA', projectTypeKey: 'software', cloudId: 'cloud-1' },
         lastSyncedAt: now,
         integrationId: 'int-1',
         userId: 'user-1',
@@ -421,8 +425,10 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
         data: {
           externalId: 'JIRA-123',
           provider: 'jira',
+          contentType: 'project',
           sourceUrl: 'https://acme.atlassian.net/browse/JIRA-123',
           title: 'Fix login bug',
+          metadata: { key: 'JIRA', projectTypeKey: 'software', cloudId: 'cloud-1' },
           lastSyncedAt: now,
           integrationId: 'int-1',
           userId: 'user-1',
@@ -433,52 +439,94 @@ describe('Infrastructure: Organization, SyncLog, DocumentMetadata', () => {
       expect(doc.id).toBe('doc-1');
       expect(doc.externalId).toBe('JIRA-123');
       expect(doc.provider).toBe('jira');
+      expect(doc.contentType).toBe('project');
       expect(doc.sourceUrl).toBe('https://acme.atlassian.net/browse/JIRA-123');
       expect(doc.title).toBe('Fix login bug');
+      expect(doc.metadata).toEqual({ key: 'JIRA', projectTypeKey: 'software', cloudId: 'cloud-1' });
       expect(doc.integrationId).toBe('int-1');
       expect(doc.userId).toBe('user-1');
       expect(doc.organizationId).toBe('org-1');
     });
 
-    it('should reject duplicate (provider, externalId) combination', async () => {
+    it('should reject duplicate (integrationId, externalId) combination', async () => {
       const uniqueViolationError = new Error(
-        'Unique constraint failed on the fields: (`provider`,`externalId`)'
+        'Unique constraint failed on the fields: (`integrationId`,`externalId`)'
       );
 
       mockPrisma.documentMetadata.create
-        .mockResolvedValueOnce({ id: 'doc-1', externalId: 'JIRA-123', provider: 'jira' })
+        .mockResolvedValueOnce({ id: 'doc-1', externalId: 'JIRA-123', provider: 'jira', integrationId: 'int-1' })
         .mockRejectedValueOnce(uniqueViolationError);
 
       await mockPrisma.documentMetadata.create({
-        data: { externalId: 'JIRA-123', provider: 'jira', integrationId: 'int-1', userId: 'user-1' },
+        data: { externalId: 'JIRA-123', provider: 'jira', contentType: 'project', integrationId: 'int-1', userId: 'user-1' },
       });
 
       await expect(
         mockPrisma.documentMetadata.create({
-          data: { externalId: 'JIRA-123', provider: 'jira', integrationId: 'int-1', userId: 'user-1' },
+          data: { externalId: 'JIRA-123', provider: 'jira', contentType: 'project', integrationId: 'int-1', userId: 'user-1' },
         })
-      ).rejects.toThrow('Unique constraint failed on the fields: (`provider`,`externalId`)');
+      ).rejects.toThrow('Unique constraint failed on the fields: (`integrationId`,`externalId`)');
+    });
+
+    it('should allow same externalId with a different integrationId (multi-tenant)', async () => {
+      const mockDocUser1 = { id: 'doc-1', externalId: 'PROJ-001', provider: 'jira', contentType: 'project', integrationId: 'int-user1', userId: 'user-1' };
+      const mockDocUser2 = { id: 'doc-2', externalId: 'PROJ-001', provider: 'jira', contentType: 'project', integrationId: 'int-user2', userId: 'user-2' };
+
+      mockPrisma.documentMetadata.create
+        .mockResolvedValueOnce(mockDocUser1)
+        .mockResolvedValueOnce(mockDocUser2);
+
+      const docUser1 = await mockPrisma.documentMetadata.create({
+        data: { externalId: 'PROJ-001', provider: 'jira', contentType: 'project', integrationId: 'int-user1', userId: 'user-1' },
+      });
+
+      const docUser2 = await mockPrisma.documentMetadata.create({
+        data: { externalId: 'PROJ-001', provider: 'jira', contentType: 'project', integrationId: 'int-user2', userId: 'user-2' },
+      });
+
+      expect(docUser1.integrationId).toBe('int-user1');
+      expect(docUser2.integrationId).toBe('int-user2');
+      expect(docUser1.externalId).toBe(docUser2.externalId);
+      expect(docUser1.id).not.toBe(docUser2.id);
     });
 
     it('should allow same externalId with a different provider', async () => {
-      const mockDocJira = { id: 'doc-1', externalId: 'DOC-001', provider: 'jira' };
-      const mockDocConfluence = { id: 'doc-2', externalId: 'DOC-001', provider: 'confluence' };
+      const mockDocJira = { id: 'doc-1', externalId: 'DOC-001', provider: 'jira', contentType: 'project', integrationId: 'int-jira' };
+      const mockDocConfluence = { id: 'doc-2', externalId: 'DOC-001', provider: 'confluence', contentType: 'space', integrationId: 'int-confluence' };
 
       mockPrisma.documentMetadata.create
         .mockResolvedValueOnce(mockDocJira)
         .mockResolvedValueOnce(mockDocConfluence);
 
       const docJira = await mockPrisma.documentMetadata.create({
-        data: { externalId: 'DOC-001', provider: 'jira', integrationId: 'int-1', userId: 'user-1' },
+        data: { externalId: 'DOC-001', provider: 'jira', contentType: 'project', integrationId: 'int-jira', userId: 'user-1' },
       });
 
       const docConfluence = await mockPrisma.documentMetadata.create({
-        data: { externalId: 'DOC-001', provider: 'confluence', integrationId: 'int-2', userId: 'user-1' },
+        data: { externalId: 'DOC-001', provider: 'confluence', contentType: 'space', integrationId: 'int-confluence', userId: 'user-1' },
       });
 
       expect(docJira.provider).toBe('jira');
       expect(docConfluence.provider).toBe('confluence');
       expect(docJira.externalId).toBe(docConfluence.externalId);
+    });
+
+    it('should support contentType field for distinguishing document types', async () => {
+      const now = new Date();
+      const slackChannel = { id: 'doc-ch', externalId: 'C001', provider: 'slack', contentType: 'channel', title: 'general', metadata: { is_private: false }, integrationId: 'int-slack', userId: 'user-1', lastSyncedAt: now, createdAt: now, updatedAt: now };
+      const jiraProject = { id: 'doc-pr', externalId: 'PROJ-1', provider: 'jira', contentType: 'project', title: 'Alpha', metadata: { key: 'PA' }, integrationId: 'int-jira', userId: 'user-1', lastSyncedAt: now, createdAt: now, updatedAt: now };
+      const confluenceSpace = { id: 'doc-sp', externalId: 'ENG', provider: 'confluence', contentType: 'space', title: 'Engineering', metadata: { type: 'global' }, integrationId: 'int-confluence', userId: 'user-1', lastSyncedAt: now, createdAt: now, updatedAt: now };
+
+      mockPrisma.documentMetadata.findMany.mockResolvedValue([slackChannel, jiraProject, confluenceSpace]);
+
+      const docs = await mockPrisma.documentMetadata.findMany({ where: { userId: 'user-1' } });
+
+      expect(docs[0].contentType).toBe('channel');
+      expect(docs[1].contentType).toBe('project');
+      expect(docs[2].contentType).toBe('space');
+      expect(docs[0].metadata).toEqual({ is_private: false });
+      expect(docs[1].metadata).toEqual({ key: 'PA' });
+      expect(docs[2].metadata).toEqual({ type: 'global' });
     });
   });
 

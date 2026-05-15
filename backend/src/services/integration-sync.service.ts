@@ -69,7 +69,35 @@ export async function syncSlack(integration: Integration): Promise<{ syncedItemC
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
-  return { syncedItemCount: response.data.channels?.length ?? 0 };
+  const channels: any[] = response.data.channels ?? [];
+  const now = new Date();
+
+  await Promise.all(
+    channels.map((ch) =>
+      prisma.documentMetadata.upsert({
+        where: { integrationId_externalId: { integrationId: integration.id, externalId: ch.id } },
+        create: {
+          integrationId: integration.id,
+          userId: integration.userId,
+          organizationId: integration.organizationId ?? null,
+          provider: 'slack',
+          externalId: ch.id,
+          contentType: 'channel',
+          title: ch.name ?? null,
+          sourceUrl: null,
+          metadata: { is_private: ch.is_private ?? false, num_members: ch.num_members ?? null },
+          lastSyncedAt: now,
+        },
+        update: {
+          title: ch.name ?? null,
+          metadata: { is_private: ch.is_private ?? false, num_members: ch.num_members ?? null },
+          lastSyncedAt: now,
+        },
+      })
+    )
+  );
+
+  return { syncedItemCount: channels.length };
 }
 
 export async function syncJira(integration: Integration): Promise<{ syncedItemCount: number }> {
@@ -82,6 +110,7 @@ export async function syncJira(integration: Integration): Promise<{ syncedItemCo
   });
 
   const cloudId = resourcesRes.data[0]?.id;
+  const cloudUrl = resourcesRes.data[0]?.url ?? null;
   if (!cloudId) return { syncedItemCount: 0 };
 
   const projectsRes = await axios.get(
@@ -89,7 +118,36 @@ export async function syncJira(integration: Integration): Promise<{ syncedItemCo
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  return { syncedItemCount: projectsRes.data?.length ?? 0 };
+  const projects: any[] = projectsRes.data ?? [];
+  const now = new Date();
+
+  await Promise.all(
+    projects.map((p) =>
+      prisma.documentMetadata.upsert({
+        where: { integrationId_externalId: { integrationId: integration.id, externalId: p.id } },
+        create: {
+          integrationId: integration.id,
+          userId: integration.userId,
+          organizationId: integration.organizationId ?? null,
+          provider: 'jira',
+          externalId: p.id,
+          contentType: 'project',
+          title: p.name ?? null,
+          sourceUrl: cloudUrl ? `${cloudUrl}/browse/${p.key}` : null,
+          metadata: { key: p.key, projectTypeKey: p.projectTypeKey ?? null, cloudId },
+          lastSyncedAt: now,
+        },
+        update: {
+          title: p.name ?? null,
+          sourceUrl: cloudUrl ? `${cloudUrl}/browse/${p.key}` : null,
+          metadata: { key: p.key, projectTypeKey: p.projectTypeKey ?? null, cloudId },
+          lastSyncedAt: now,
+        },
+      })
+    )
+  );
+
+  return { syncedItemCount: projects.length };
 }
 
 export async function syncConfluence(integration: Integration): Promise<{ syncedItemCount: number }> {
@@ -102,6 +160,7 @@ export async function syncConfluence(integration: Integration): Promise<{ synced
   });
 
   const cloudId = resourcesRes.data[0]?.id;
+  const cloudUrl = resourcesRes.data[0]?.url ?? null;
   if (!cloudId) return { syncedItemCount: 0 };
 
   const spacesRes = await axios.get(
@@ -109,7 +168,36 @@ export async function syncConfluence(integration: Integration): Promise<{ synced
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  return { syncedItemCount: spacesRes.data?.results?.length ?? spacesRes.data?.length ?? 0 };
+  const spaces: any[] = spacesRes.data?.results ?? spacesRes.data ?? [];
+  const now = new Date();
+
+  await Promise.all(
+    spaces.map((s) =>
+      prisma.documentMetadata.upsert({
+        where: { integrationId_externalId: { integrationId: integration.id, externalId: s.key } },
+        create: {
+          integrationId: integration.id,
+          userId: integration.userId,
+          organizationId: integration.organizationId ?? null,
+          provider: 'confluence',
+          externalId: s.key,
+          contentType: 'space',
+          title: s.name ?? null,
+          sourceUrl: cloudUrl ? `${cloudUrl}/wiki/spaces/${s.key}` : null,
+          metadata: { type: s.type ?? null, cloudId },
+          lastSyncedAt: now,
+        },
+        update: {
+          title: s.name ?? null,
+          sourceUrl: cloudUrl ? `${cloudUrl}/wiki/spaces/${s.key}` : null,
+          metadata: { type: s.type ?? null, cloudId },
+          lastSyncedAt: now,
+        },
+      })
+    )
+  );
+
+  return { syncedItemCount: spaces.length };
 }
 
 export async function runSync(integration: Integration): Promise<{ syncedItemCount: number }> {

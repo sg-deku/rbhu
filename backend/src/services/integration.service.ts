@@ -516,6 +516,118 @@ export async function getActivity(
   };
 }
 
+export interface DocumentMetadataDTO {
+  id: string;
+  externalId: string;
+  provider: string;
+  contentType: string;
+  sourceUrl: string | null;
+  title: string | null;
+  metadata: unknown;
+  lastSyncedAt: Date | null;
+  integrationId: string;
+  userId: string;
+  organizationId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toDocumentMetadataDTO(doc: any): DocumentMetadataDTO {
+  return {
+    id: doc.id,
+    externalId: doc.externalId,
+    provider: doc.provider,
+    contentType: doc.contentType,
+    sourceUrl: doc.sourceUrl,
+    title: doc.title,
+    metadata: doc.metadata,
+    lastSyncedAt: doc.lastSyncedAt,
+    integrationId: doc.integrationId,
+    userId: doc.userId,
+    organizationId: doc.organizationId,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+export async function upsertDocumentMetadata(params: {
+  integrationId: string;
+  userId: string;
+  organizationId?: string | null;
+  provider: 'jira' | 'slack' | 'confluence';
+  externalId: string;
+  contentType: string;
+  title?: string | null;
+  sourceUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): Promise<DocumentMetadataDTO> {
+  const now = new Date();
+  const doc = await prisma.documentMetadata.upsert({
+    where: { integrationId_externalId: { integrationId: params.integrationId, externalId: params.externalId } },
+    create: {
+      integrationId: params.integrationId,
+      userId: params.userId,
+      organizationId: params.organizationId ?? null,
+      provider: params.provider as any,
+      externalId: params.externalId,
+      contentType: params.contentType,
+      title: params.title ?? null,
+      sourceUrl: params.sourceUrl ?? null,
+      metadata: (params.metadata ?? undefined) as any,
+      lastSyncedAt: now,
+    },
+    update: {
+      title: params.title ?? null,
+      sourceUrl: params.sourceUrl ?? null,
+      metadata: (params.metadata ?? undefined) as any,
+      lastSyncedAt: now,
+    },
+  });
+  return toDocumentMetadataDTO(doc);
+}
+
+export async function getDocumentsByIntegration(
+  integrationId: string,
+  page: number,
+  limit: number
+): Promise<{ data: DocumentMetadataDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const [docs, total] = await Promise.all([
+    prisma.documentMetadata.findMany({
+      where: { integrationId },
+      orderBy: { lastSyncedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.documentMetadata.count({ where: { integrationId } }),
+  ]);
+
+  return {
+    data: docs.map(toDocumentMetadataDTO),
+    pagination: { page, limit, total },
+  };
+}
+
+export async function getDocumentsByUser(
+  userId: string,
+  page: number,
+  limit: number
+): Promise<{ data: DocumentMetadataDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const [docs, total] = await Promise.all([
+    prisma.documentMetadata.findMany({
+      where: { userId },
+      orderBy: { lastSyncedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.documentMetadata.count({ where: { userId } }),
+  ]);
+
+  return {
+    data: docs.map(toDocumentMetadataDTO),
+    pagination: { page, limit, total },
+  };
+}
+
 export interface SyncLogDTO {
   id: string;
   integrationId: string;
