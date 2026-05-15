@@ -101,24 +101,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         className="flex-shrink-0 flex flex-col h-full bg-white border-r border-gray-200 z-20 overflow-visible"
       >
-        <div className="h-16 flex items-center px-4 border-b border-gray-200 shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-white font-bold text-lg leading-none tracking-tighter">R</span>
-            </div>
-            <AnimatePresence>
-              {sidebarOpen && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="font-bold text-lg tracking-tight text-gray-900 whitespace-nowrap"
-                >
-                  RBHU
-                </motion.span>
-              )}
-            </AnimatePresence>
+        <div className="h-16 flex items-center px-6 border-b border-gray-200 shrink-0">
+          <div className="flex items-center overflow-hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" className="h-8 w-auto text-indigo-600 fill-current shrink-0">
+              <defs>
+                <style>
+                  {`@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');`}
+                </style>
+              </defs>
+              <text x="0" y="92" fontFamily="'Fredoka One', 'Quicksand', 'Nunito', sans-serif" fontWeight="400" fontSize="96" letterSpacing="-3">rbhu</text>
+            </svg>
           </div>
         </div>
 
