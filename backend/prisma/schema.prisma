@@ -20,6 +20,7 @@ model User {
 
   integrations     Integration[]
   activities       IntegrationActivity[]
+  documentMetadata DocumentMetadata[]
 }
 
 enum Role {
@@ -83,6 +84,7 @@ model Integration {
   config            IntegrationConfig?
   activities        IntegrationActivity[]
   syncLogs          SyncLog[]
+  documentMetadata  DocumentMetadata[]
 
   @@unique([userId, provider])
   @@index([userId])
@@ -128,4 +130,24 @@ model SyncLog {
   integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
   @@index([integrationId])
+}
+
+model DocumentMetadata {
+  id             String              @id @default(cuid())
+  externalId     String
+  provider       IntegrationProvider
+  sourceUrl      String?
+  title          String?
+  lastSyncedAt   DateTime?
+  integrationId  String
+  userId         String
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  integration  Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@index([integrationId])
+  @@index([userId])
 }

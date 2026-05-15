@@ -15,6 +15,10 @@ jest.mock('../config/database', () => ({
       create: jest.fn(),
       findMany: jest.fn(),
     },
+    documentMetadata: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -82,6 +86,41 @@ describe('RB-53: SyncLog Model', () => {
 
     expect(result.status).toBe('success');
     expect(result.syncedCount).toBe(10);
+    expect(result.integrationId).toBe('int-1');
+  });
+});
+
+describe('RB-54: DocumentMetadata Model', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should verify DocumentMetadata model fields and relations', async () => {
+    const mockDoc = {
+      id: 'doc-1',
+      externalId: 'ext-1',
+      provider: 'jira',
+      sourceUrl: 'https://jira.com/ext-1',
+      title: 'Doc Title',
+      integrationId: 'int-1',
+      userId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    (prisma.documentMetadata.create as jest.Mock).mockResolvedValue(mockDoc);
+
+    const result = await prisma.documentMetadata.create({
+      data: {
+        externalId: 'ext-1',
+        provider: 'jira',
+        integrationId: 'int-1',
+        userId: 'user-1',
+      } as any,
+    });
+
+    expect(result.externalId).toBe('ext-1');
+    expect(result.provider).toBe('jira');
     expect(result.integrationId).toBe('int-1');
   });
 });
