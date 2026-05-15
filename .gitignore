@@ -11,3 +11,5 @@ coverage/
 uploads/
 !uploads/.gitkeep
 prisma/*.db
+frontend/playwright-report/
+frontend/test-results/
