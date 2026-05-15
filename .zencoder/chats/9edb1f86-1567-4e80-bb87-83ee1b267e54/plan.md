@@ -638,3 +638,22 @@ Save to `/Users/sushmitghosh/Desktop/Projects/rbhu/.zencoder/chats/9edb1f86-1567
 **Verification**:
 - Full walkthrough of the app from login to settings.
 - UI consistency and responsiveness verified.
+
+---
+
+### [x] Step 9: UI Refinement and Production-Grade Polish
+
+**Goal**: Resolve usability issues and elevate the UI to production-grade quality based on user feedback.
+
+**Subtasks**:
+- **Fix Overflow/Clipping**: Ensure all pages (especially Account Settings) are properly scrollable within the Dashboard layout and text is not cut off.
+- **Refine Integration Cards**: Scale down provider logos for a cleaner look. Ensure "Sync" status and account info are well-positioned.
+- **Improve "+" Button**: Correct the implementation of the "Add Integration" button to follow professional SaaS patterns.
+- **Add Global Footer**: Implement a proper footer in the dashboard area with relevant links (Support, Privacy, Terms).
+- **Production Polish**: Audit typography, spacing, and information hierarchy across all pages (Login, Home, Integrations, Account).
+- **Responsive Audit**: Ensure the layout remains professional and usable on mobile devices.
+
+**Verification**:
+- Full walkthrough of the application to verify no text clipping.
+- Verify the new footer and "+" button functionality.
+- Mobile responsiveness check.
