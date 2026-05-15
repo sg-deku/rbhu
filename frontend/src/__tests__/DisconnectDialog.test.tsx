@@ -12,7 +12,7 @@ describe('DisconnectDialog', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Disconnect Slack')).toBeInTheDocument()
+    expect(screen.getByText('Disconnect Slack?')).toBeInTheDocument()
     expect(screen.getByText(/stored tokens and sync history for Slack/)).toBeInTheDocument()
     expect(screen.getByText(/This action cannot be undone/)).toBeInTheDocument()
   })
@@ -27,7 +27,7 @@ describe('DisconnectDialog', () => {
         onCancel={onCancel}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    fireEvent.click(screen.getByRole('button', { name: /keep connected/i }))
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 

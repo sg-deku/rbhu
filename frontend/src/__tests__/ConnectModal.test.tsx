@@ -12,7 +12,7 @@ describe('ConnectModal', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Connect to Slack')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Connect to Slack' })).toBeInTheDocument()
   })
 
   it('shows Slack scopes when provider=slack', () => {
@@ -38,7 +38,7 @@ describe('ConnectModal', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Connect to Jira')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Connect to Jira' })).toBeInTheDocument()
     expect(screen.getByText('read:jira-work')).toBeInTheDocument()
     expect(screen.getByText('read:jira-user')).toBeInTheDocument()
   })
