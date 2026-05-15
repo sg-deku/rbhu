@@ -96,3 +96,12 @@ export const deleteIndex = async (indexName: string = VECTOR_INDEX_NAME) => {
     await esClient.indices.delete({ index: indexName });
   }
 };
+
+/**
+ * Re-indexes by deleting and recreating the index.
+ */
+export const reindex = async (indexName: string = VECTOR_INDEX_NAME) => {
+  await deleteIndex(indexName);
+  await ensureIndexExists(indexName);
+};
+
