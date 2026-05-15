@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import SearchInput from '../components/SearchInput'
 import AnswerView from '../components/AnswerView'
 import SourceSidebar, { Source } from '../components/SourceSidebar'
@@ -67,15 +66,6 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="flex justify-end mb-4">
-        <Link 
-          to="/settings/integrations" 
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm font-medium"
-        >
-          Manage Integrations
-        </Link>
-      </div>
-
       <div className={`transition-all duration-500 ${currentQuery ? 'mt-8' : 'mt-20'}`}>
         {!currentQuery && (
           <div className="text-center mb-12">
