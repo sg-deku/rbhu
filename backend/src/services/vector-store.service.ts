@@ -104,4 +104,3 @@ export const reindex = async (indexName: string = VECTOR_INDEX_NAME) => {
   await deleteIndex(indexName);
   await ensureIndexExists(indexName);
 };
-
