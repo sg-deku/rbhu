@@ -1,0 +1,13 @@
+{
+  "name": "rbhu-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces",
+    "build": "npm run build --workspaces",
+    "prisma:generate": "npm run prisma:generate --workspace=backend"
+  }
+}

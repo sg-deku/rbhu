@@ -20,20 +20,17 @@ jobs:
             backend/package-lock.json
             frontend/package-lock.json
 
-      - name: Backend - Install and Test
-        run: |
-          cd backend
-          npm ci
-          npx prisma generate
-          npm run build
-          npm test
+      - name: Install dependencies
+        run: npm install
 
-      - name: Frontend - Install and Test
-        run: |
-          cd frontend
-          npm ci
-          npm run build
-          npm test
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
       
 
   deploy:
