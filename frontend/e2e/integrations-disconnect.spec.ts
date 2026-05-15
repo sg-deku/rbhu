@@ -17,11 +17,33 @@ const connectedSlackIntegration = {
 
 test.describe('Integrations disconnect flow', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(`${API_URL}/integrations`, (route) =>
+    // page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+
+    await page.route('**/api/auth/profile', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [connectedSlackIntegration] }),
+        body: JSON.stringify({ id: 'user-1', name: 'Test User', email: 'test@example.com', role: 'user' }),
+      })
+    )
+
+    await page.route('**/api/integrations', (route) => {
+      const url = route.request().url();
+      if (route.request().method() === 'GET' && (url.endsWith('/integrations') || url.endsWith('/integrations/'))) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [connectedSlackIntegration] }),
+        })
+      }
+      return route.continue();
+    })
+
+    await page.route('**/api/integrations/activity**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [], pagination: { total: 0, page: 1, limit: 20 } }),
       })
     )
 
@@ -32,8 +54,9 @@ test.describe('Integrations disconnect flow', () => {
 
   test('clicking Disconnect opens DisconnectDialog with warning text', async ({ page }) => {
     await page.goto('/settings/integrations')
+    await expect(page.getByText('Connected')).toBeVisible()
 
-    const slackCard = page.locator('div').filter({ hasText: /^Slack/ }).first()
+    const slackCard = page.locator('div').filter({ has: page.getByRole('heading', { name: 'Slack' }) }).first()
     const disconnectButton = slackCard.getByRole('button', { name: /Disconnect/i })
 
     await expect(disconnectButton).toBeVisible()
@@ -46,8 +69,9 @@ test.describe('Integrations disconnect flow', () => {
 
   test('clicking Cancel closes the dialog and card still shows Connected', async ({ page }) => {
     await page.goto('/settings/integrations')
+    await expect(page.getByText('Connected')).toBeVisible()
 
-    const slackCard = page.locator('div').filter({ hasText: /^Slack/ }).first()
+    const slackCard = page.locator('div').filter({ has: page.getByRole('heading', { name: 'Slack' }) }).first()
     await slackCard.getByRole('button', { name: /Disconnect/i }).click()
 
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -59,7 +83,7 @@ test.describe('Integrations disconnect flow', () => {
   })
 
   test('confirming disconnect removes card integration and shows success toast', async ({ page }) => {
-    await page.route(`${API_URL}/integrations/slack`, (route) =>
+    await page.route('**/api/integrations/slack', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -68,8 +92,9 @@ test.describe('Integrations disconnect flow', () => {
     )
 
     await page.goto('/settings/integrations')
+    await expect(page.getByText('Connected')).toBeVisible()
 
-    const slackCard = page.locator('div').filter({ hasText: /^Slack/ }).first()
+    const slackCard = page.locator('div').filter({ has: page.getByRole('heading', { name: 'Slack' }) }).first()
     await slackCard.getByRole('button', { name: /Disconnect/i }).click()
 
     await expect(page.getByRole('dialog')).toBeVisible()

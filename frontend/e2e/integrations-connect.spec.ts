@@ -4,6 +4,14 @@ const API_URL = 'http://localhost:5000/api'
 
 test.describe('Integration connect flow', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route(`${API_URL}/auth/profile`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, user: { id: '1', name: 'Test User', email: 'test@example.com' } }),
+      })
+    )
+
     await page.route(`${API_URL}/integrations`, (route) =>
       route.fulfill({
         status: 200,
@@ -20,7 +28,7 @@ test.describe('Integration connect flow', () => {
   test('clicking Connect on Slack card opens ConnectModal with Connect to Slack heading', async ({ page }) => {
     await page.goto('/settings/integrations')
 
-    await expect(page.getByText('Slack')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Slack' })).toBeVisible()
 
     const slackCard = page.locator('div').filter({ hasText: /^Slack/ }).first()
     await slackCard.getByRole('button', { name: 'Connect' }).click()

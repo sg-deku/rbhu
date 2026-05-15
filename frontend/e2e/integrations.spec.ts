@@ -15,6 +15,26 @@ async function loginAndSetToken(page: any) {
 }
 
 test.describe('Integrations page', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(`${API_URL}/auth/profile`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          user: { id: 'user-1', name: 'Test User', email: 'test@example.com', role: 'user' },
+        }),
+      })
+    )
+    await page.route(`${API_URL}/integrations/activity*`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [], pagination: { total: 0, pages: 0, page: 1, limit: 20 } }),
+      })
+    )
+  })
+
   test('unauthenticated user is redirected to /login', async ({ page }) => {
     await page.goto('/settings/integrations')
     await expect(page).toHaveURL(/\/login/)
@@ -35,9 +55,9 @@ test.describe('Integrations page', () => {
 
     await page.goto('/settings/integrations')
 
-    await expect(page.getByText('Jira')).toBeVisible()
-    await expect(page.getByText('Slack')).toBeVisible()
-    await expect(page.getByText('Confluence')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Jira' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Slack' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Confluence' })).toBeVisible()
   })
 
   test('each card shows a status badge', async ({ page }) => {
