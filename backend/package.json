@@ -34,6 +34,7 @@
     "express": "latest",
     "express-rate-limit": "latest",
     "express-session": "latest",
+    "glob": "^7.2.3",
     "helmet": "^8.1.0",
     "jsonwebtoken": "latest",
     "node-cron": "^4.2.1",
