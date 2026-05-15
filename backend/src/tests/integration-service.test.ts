@@ -5,6 +5,9 @@ import { generateOAuthState, verifyOAuthState } from '../utils/oauth-state';
 jest.mock('../config/database', () => ({
   __esModule: true,
   default: {
+    user: {
+      findUnique: jest.fn(),
+    },
     integration: {
       findMany: jest.fn(),
       upsert: jest.fn(),
@@ -149,6 +152,7 @@ describe('Integration Service', () => {
       });
 
       const mockIntegration = { id: 'int-1', userId: 'user-1', provider: 'slack' };
+      mockPrisma.user.findUnique.mockResolvedValue({ organizationId: null });
       mockPrisma.integration.upsert.mockResolvedValue(mockIntegration);
       mockPrisma.integration.findUnique.mockResolvedValue(mockIntegration);
       mockPrisma.integrationActivity.create.mockResolvedValue({});

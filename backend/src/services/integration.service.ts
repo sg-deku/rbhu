@@ -33,9 +33,10 @@ function toDTO(integration: any): IntegrationDTO {
   };
 }
 
-export async function getIntegrations(userId: string): Promise<IntegrationDTO[]> {
+export async function getIntegrations(userId: string, organizationId?: string | null): Promise<IntegrationDTO[]> {
+  const where = organizationId ? { organizationId } : { userId };
   const integrations = await prisma.integration.findMany({
-    where: { userId },
+    where,
     orderBy: { createdAt: 'asc' },
   });
   return integrations.map(toDTO);
@@ -128,10 +129,14 @@ export async function handleOAuthCallback(
 
   const tokenUpdatedAt = new Date();
 
+  const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { organizationId: true } });
+  const organizationId = userRecord?.organizationId ?? null;
+
   await prisma.integration.upsert({
     where: { userId_provider: { userId, provider: provider as any } },
     create: {
       userId,
+      organizationId,
       provider: provider as any,
       status: 'connected',
       accessToken: encryptedAccessToken,
@@ -145,6 +150,7 @@ export async function handleOAuthCallback(
       syncStatus: 'idle',
     },
     update: {
+      organizationId,
       status: 'connected',
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
@@ -490,16 +496,20 @@ export async function updateConfig(
 export async function getActivity(
   userId: string,
   page: number,
-  limit: number
+  limit: number,
+  organizationId?: string | null
 ): Promise<{ data: ActivityDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const where = organizationId
+    ? { integration: { organizationId } }
+    : { userId };
   const [activities, total] = await Promise.all([
     prisma.integrationActivity.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.integrationActivity.count({ where: { userId } }),
+    prisma.integrationActivity.count({ where }),
   ]);
 
   return {
@@ -610,16 +620,39 @@ export async function getDocumentsByIntegration(
 export async function getDocumentsByUser(
   userId: string,
   page: number,
-  limit: number
+  limit: number,
+  organizationId?: string | null
 ): Promise<{ data: DocumentMetadataDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const where = organizationId ? { organizationId } : { userId };
   const [docs, total] = await Promise.all([
     prisma.documentMetadata.findMany({
-      where: { userId },
+      where,
       orderBy: { lastSyncedAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.documentMetadata.count({ where: { userId } }),
+    prisma.documentMetadata.count({ where }),
+  ]);
+
+  return {
+    data: docs.map(toDocumentMetadataDTO),
+    pagination: { page, limit, total },
+  };
+}
+
+export async function getDocumentsByOrganization(
+  organizationId: string,
+  page: number,
+  limit: number
+): Promise<{ data: DocumentMetadataDTO[]; pagination: { page: number; limit: number; total: number } }> {
+  const [docs, total] = await Promise.all([
+    prisma.documentMetadata.findMany({
+      where: { organizationId },
+      orderBy: { lastSyncedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.documentMetadata.count({ where: { organizationId } }),
   ]);
 
   return {

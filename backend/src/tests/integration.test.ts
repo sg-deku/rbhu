@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 jest.mock('../config/database', () => ({
   __esModule: true,
   default: {
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ organizationId: null }),
+    },
     integration: {
       findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),

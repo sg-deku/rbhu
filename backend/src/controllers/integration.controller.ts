@@ -18,7 +18,7 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 export const listIntegrations = async (req: any, res: Response) => {
   try {
-    const data = await getIntegrations(req.userId);
+    const data = await getIntegrations(req.userId, req.organizationId);
     res.json({ success: true, data });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -153,7 +153,7 @@ export const listActivity = async (req: any, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const result = await getActivityService(req.userId, page, limit);
+    const result = await getActivityService(req.userId, page, limit, req.organizationId);
     res.json({ success: true, data: result.data, pagination: result.pagination });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
