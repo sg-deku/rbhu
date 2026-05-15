@@ -4,7 +4,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 
+const isTest = process.env.NODE_ENV === 'test';
 dotenv.config({ path: '../.env' });
+if (isTest) process.env.NODE_ENV = 'test';
 
 import rateLimit from 'express-rate-limit';
 
@@ -94,7 +96,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 
 // Start Server
 const startServer = async () => {
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_SERVER_START !== 'true') {
     await connectDB();
     startIntegrationScheduler();
 

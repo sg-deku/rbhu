@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../services/api'
 import { User, Shield, Bell, AlertTriangle } from 'lucide-react'
 
 interface FormSection {
@@ -29,16 +30,32 @@ const sectionVariants = {
 const AccountPage = () => {
   const { user } = useAuth()
   const [activeSection, setActiveSection] = useState('profile')
-  const [profileForm, setProfileForm] = useState({ name: user?.name ?? '', email: user?.email ?? '' })
+  const [profileForm, setProfileForm] = useState({ name: user?.name ?? '', email: user?.email ?? '', role: user?.role ?? 'USER' })
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
   const [profileSaved, setProfileSaved] = useState(false)
   const [passwordSaved, setPasswordSaved] = useState(false)
   const [notifSettings, setNotifSettings] = useState({ syncAlerts: true, weeklyDigest: false, productUpdates: true })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const isAdminOrSuperAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
+
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setProfileSaved(true)
-    setTimeout(() => setProfileSaved(false), 3000)
+    if (!user) return
+    try {
+      setIsSubmitting(true)
+      const res = await api.put(`/users/${user.id}`, { name: profileForm.name, role: profileForm.role }, true)
+      if (res.success) {
+        setProfileSaved(true)
+        setTimeout(() => setProfileSaved(false), 3000)
+      } else {
+        alert(res.message || 'Failed to update profile')
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to update profile')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handlePasswordSave = (e: React.FormEvent) => {
@@ -129,10 +146,33 @@ const AccountPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
                   <input
                     type="email"
+                    disabled
                     value={profileForm.email}
                     onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-lg text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed outline-none transition-all"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+                  {isAdminOrSuperAdmin ? (
+                    <select
+                      value={profileForm.role}
+                      onChange={e => setProfileForm(f => ({ ...f, role: e.target.value }))}
+                      className="w-full sm:w-1/2 px-4 py-2.5 rounded-lg text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                    >
+                      <option value="USER">User</option>
+                      <option value="MODERATOR">Moderator</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="SUPERADMIN">Super Admin</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      disabled
+                      value={profileForm.role}
+                      className="w-full sm:w-1/2 px-4 py-2.5 rounded-lg text-sm bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed outline-none transition-all"
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4 pt-2">

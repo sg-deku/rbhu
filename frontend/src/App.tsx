@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import IntegrationsPage from './pages/settings/IntegrationsPage'
 import AccountPage from './pages/settings/AccountPage'
+import UsersPage from './pages/settings/UsersPage'
 import DashboardLayout from './components/layout/DashboardLayout'
 import './styles/index.css'
 
@@ -13,6 +14,14 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   const { token, loading } = useAuth()
   if (loading) return null
   if (!token) return <Navigate to="/login" replace />
+  return <DashboardLayout>{children}</DashboardLayout>
+}
+
+const ProtectedAdminLayout = ({ children }: { children: React.ReactNode }) => {
+  const { token, loading, user } = useAuth()
+  if (loading) return null
+  if (!token) return <Navigate to="/login" replace />
+  if (user?.role !== 'ADMIN' && user?.role !== 'SUPERADMIN') return <Navigate to="/" replace />
   return <DashboardLayout>{children}</DashboardLayout>
 }
 
@@ -25,6 +34,7 @@ function App() {
         <Route path="/" element={<ProtectedLayout><Home /></ProtectedLayout>} />
         <Route path="/settings/integrations" element={<ProtectedLayout><IntegrationsPage /></ProtectedLayout>} />
         <Route path="/settings/account" element={<ProtectedLayout><AccountPage /></ProtectedLayout>} />
+        <Route path="/settings/users" element={<ProtectedAdminLayout><UsersPage /></ProtectedAdminLayout>} />
       </Routes>
     </BrowserRouter>
   )

@@ -23,23 +23,6 @@ interface NavItem {
   children?: { label: string; href: string }[]
 }
 
-const navItems: NavItem[] = [
-  {
-    label: 'Home',
-    href: '/',
-    icon: <Home className="w-5 h-5" />,
-  },
-  {
-    label: 'Settings',
-    href: '/settings',
-    icon: <Settings className="w-5 h-5" />,
-    children: [
-      { label: 'Account', href: '/settings/account' },
-      { label: 'Integrations', href: '/settings/integrations' },
-    ],
-  },
-]
-
 interface BreadcrumbSegment {
   label: string
   href?: string
@@ -50,6 +33,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
     '/': [{ label: 'Home' }],
     '/settings/account': [{ label: 'Settings' }, { label: 'Account' }],
     '/settings/integrations': [{ label: 'Settings' }, { label: 'Integrations' }],
+    '/settings/users': [{ label: 'Settings' }, { label: 'Users' }],
   }
   return map[pathname] ?? [{ label: 'Page' }]
 }
@@ -62,6 +46,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
+
+  const navItems: NavItem[] = [
+    {
+      label: 'Home',
+      href: '/',
+      icon: <Home className="w-5 h-5" />,
+    },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: <Settings className="w-5 h-5" />,
+      children: [
+        { label: 'Account', href: '/settings/account' },
+        { label: 'Integrations', href: '/settings/integrations' },
+        ...(isAdmin ? [{ label: 'Users', href: '/settings/users' }] : []),
+      ],
+    },
+  ]
   
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(location.pathname.startsWith('/settings'))
