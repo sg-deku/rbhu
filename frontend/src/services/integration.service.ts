@@ -3,8 +3,16 @@ import { IntegrationDTO, Provider, ActivityDTO, ResourceDTO } from '../types/int
 
 export const integrationService = {
   getIntegrations: async (): Promise<IntegrationDTO[]> => {
-    const data = await api.get('/integrations')
-    return data.data
+    try {
+      const data = await api.get('/integrations')
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch integrations')
+      }
+      return data.data || []
+    } catch (e) {
+      console.error(e)
+      return []
+    }
   },
 
   initiateConnect: async (provider: Provider, customConfig?: { clientId: string; clientSecret: string }): Promise<string> => {

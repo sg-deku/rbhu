@@ -273,20 +273,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
             </button>
 
-            <div className="w-px h-6 bg-gray-200 hidden sm:block"></div>
+            <div className="w-px h-6 bg-gray-200 hidden sm:block shrink-0"></div>
 
-            <div className="relative" ref={profileRef}>
+            <div className="relative shrink-0" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(o => !o)}
                 className="flex items-center gap-2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-200">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-200 shrink-0">
                   {initials}
                 </div>
                 <div className="hidden sm:block text-left text-sm max-w-[120px]">
                   <p className="font-medium text-gray-900 truncate">{user?.name}</p>
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
+                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block shrink-0" />
               </button>
 
               <AnimatePresence>
@@ -296,7 +296,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50 origin-top-right"
+                    style={{ transformOrigin: 'top right' }}
                   >
                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                       <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
