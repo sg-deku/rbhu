@@ -5,10 +5,10 @@ import { requireRole } from '../middleware/rbac.middleware';
 
 const router = Router();
 
-router.get('/', authMiddleware, requireRole('ADMIN'), getAllUsers);
-router.post('/', authMiddleware, requireRole('ADMIN'), createUser);
+router.get('/', authMiddleware, requireRole('ADMIN', 'SUPERADMIN'), getAllUsers);
+router.post('/', authMiddleware, requireRole('ADMIN', 'SUPERADMIN'), createUser);
 router.get('/:id', authMiddleware, getUserById);
-router.put('/:id', authMiddleware, updateUser);
-router.delete('/:id', authMiddleware, requireRole('ADMIN'), deleteUser);
+router.put('/:id', authMiddleware, requireRole('ADMIN', 'SUPERADMIN'), updateUser);
+router.delete('/:id', authMiddleware, requireRole('ADMIN', 'SUPERADMIN'), deleteUser);
 
 export default router;

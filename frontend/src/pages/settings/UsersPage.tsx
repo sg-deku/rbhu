@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion, Variants } from 'framer-motion'
 import { Users, MoreHorizontal, Shield, User as UserIcon, Trash2, Plus, X } from 'lucide-react'
-import axios from 'axios'
+import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
 interface User {
@@ -36,14 +36,12 @@ const UsersPage = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const res = await axios.get('/api/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.data.success) {
-        setUsers(res.data.data)
+      const res = await api.get('/users', true)
+      if (res.success) {
+        setUsers(res.data)
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch users')
+      setError(err.message || 'Failed to fetch users')
     } finally {
       setLoading(false)
     }
@@ -55,28 +53,24 @@ const UsersPage = () => {
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
     try {
-      const res = await axios.put(`/api/users/${userId}`, { role: newRole }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.data.success) {
+      const res = await api.put(`/users/${userId}`, { role: newRole }, true)
+      if (res.success) {
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u))
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update role')
+      alert(err.message || 'Failed to update role')
     }
   }
 
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return
     try {
-      const res = await axios.delete(`/api/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.data.success) {
+      const res = await api.delete(`/users/${userId}`, true)
+      if (res.success) {
         setUsers(users.filter(u => u.id !== userId))
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete user')
+      alert(err.message || 'Failed to delete user')
     }
   }
 
@@ -84,17 +78,17 @@ const UsersPage = () => {
     e.preventDefault()
     try {
       setIsSubmitting(true)
-      const res = await axios.post('/api/users', newUser, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.data.success) {
-        setUsers([res.data.data, ...users])
+      const res = await api.post('/users', newUser, true)
+      if (res.success) {
+        setUsers([res.data, ...users])
         setIsAddUserModalOpen(false)
         setNewUser({ name: '', email: '', role: 'USER' })
         alert('User created successfully. A welcome email has been sent.')
+      } else {
+        alert(res.message || 'Failed to create user')
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create user')
+      alert(err.message || 'Failed to create user')
     } finally {
       setIsSubmitting(false)
     }
