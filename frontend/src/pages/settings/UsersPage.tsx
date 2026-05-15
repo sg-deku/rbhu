@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, Variants } from 'framer-motion'
-import { Users, MoreHorizontal, Shield, User as UserIcon, Trash2 } from 'lucide-react'
+import { Users, MoreHorizontal, Shield, User as UserIcon, Trash2, Plus, X } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 
@@ -29,6 +29,9 @@ const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'USER' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fetchUsers = async () => {
     try {
@@ -77,16 +80,45 @@ const UsersPage = () => {
     }
   }
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setIsSubmitting(true)
+      const res = await axios.post('/api/users', newUser, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.data.success) {
+        setUsers([res.data.data, ...users])
+        setIsAddUserModalOpen(false)
+        setNewUser({ name: '', email: '', role: 'USER' })
+        alert('User created successfully. A welcome email has been sent.')
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to create user')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
-    <div className="w-full">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-1 flex items-center gap-2">
-          <Users className="w-6 h-6 text-indigo-600" />
-          User Management
-        </h1>
-        <p className="text-sm text-gray-500">
-          Manage users, assign roles, and control access permissions across the organization.
-        </p>
+    <div className="w-full relative">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-1 flex items-center gap-2">
+            <Users className="w-6 h-6 text-indigo-600" />
+            User Management
+          </h1>
+          <p className="text-sm text-gray-500">
+            Manage users, assign roles, and control access permissions across the organization.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsAddUserModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add User
+        </button>
       </div>
 
       {error && (
@@ -182,6 +214,89 @@ const UsersPage = () => {
           </table>
         </div>
       </motion.div>
+
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+          >
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-xl font-bold text-gray-900">Add New User</h2>
+              <button 
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-all"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-all"
+                  placeholder="john@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-all bg-white"
+                >
+                  <option value="USER">User</option>
+                  <option value="MODERATOR">Moderator</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="SUPERADMIN">Super Admin</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

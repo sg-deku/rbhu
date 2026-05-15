@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import prisma from '../config/database';
+import { sendWelcomeEmail } from '../services/email.service';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -30,6 +32,48 @@ export const getAllUsers = async (req: Request, res: Response) => {
       data: users, 
       pagination: { page, limit, total } 
     });
+  } catch (error: any) { 
+    res.status(500).json({ success: false, message: error.message }); 
+  }
+};
+
+export const createUser = async (req: Request, res: Response) => {
+  try {
+    const { name, email, role, organizationId } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
+
+    // Generate random password
+    const randomPassword = Math.random().toString(36).slice(-10);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: role || 'USER',
+        organizationId: organizationId || null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        organizationId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Send welcome email
+    await sendWelcomeEmail(user.email, user.name, user.role);
+
+    res.status(201).json({ success: true, data: user });
   } catch (error: any) { 
     res.status(500).json({ success: false, message: error.message }); 
   }
