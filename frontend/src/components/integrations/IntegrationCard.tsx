@@ -128,8 +128,8 @@ const IntegrationCard = ({
         />
       )}
 
-      <div className="flex items-start justify-between mb-5">
-        <div className="w-10 h-10 flex-shrink-0">
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-8 h-8 flex-shrink-0">
           <Icon />
         </div>
         <StatusBadge status={integration?.status ?? 'disconnected'} />

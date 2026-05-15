@@ -160,18 +160,20 @@ const IntegrationsPage = () => {
               Connect your tools to sync data and surface knowledge across your workspace.
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setAddIntegrationOpen(true)}
-            className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-150"
-            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Integration
-          </motion.button>
+          {availableProviders.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setAddIntegrationOpen(true)}
+              className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-150"
+              style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Integration
+            </motion.button>
+          )}
         </div>
 
         {loading ? (

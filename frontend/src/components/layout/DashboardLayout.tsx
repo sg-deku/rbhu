@@ -225,19 +225,28 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </nav>
 
         <div className="flex-shrink-0 p-2" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <AnimatePresence>
-            {sidebarOpen && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-xs px-3 py-2"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                © 2026 RBHU
-              </motion.p>
-            )}
-          </AnimatePresence>
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg"
+            title={!sidebarOpen ? 'v1.0.0' : undefined}
+          >
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: '#10b981' }}
+            />
+            <AnimatePresence>
+              {sidebarOpen && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-xs"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  All systems operational
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.aside>
 
@@ -285,7 +294,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <div
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all duration-150"
               style={{
@@ -298,8 +307,24 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="text-xs">Search...</span>
-              <span className="ml-1 text-xs px-1 rounded" style={{ backgroundColor: 'var(--color-border)' }}>⌘K</span>
+              <span className="ml-1 text-xs px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>⌘K</span>
             </div>
+
+            <button
+              className="relative p-2 rounded-lg transition-all duration-150 flex-shrink-0"
+              style={{ color: 'var(--color-text-secondary)' }}
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+
+            <div
+              className="w-px h-6 flex-shrink-0 hidden sm:block"
+              style={{ backgroundColor: 'var(--color-border)' }}
+            />
 
             <div className="relative" ref={profileRef}>
               <button
@@ -398,9 +423,45 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full"
+            className="min-h-full flex flex-col"
           >
-            {children}
+            <div className="flex-1">
+              {children}
+            </div>
+            <footer
+              className="flex-shrink-0 px-4 sm:px-6 py-4 flex items-center justify-between"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-card)',
+              }}
+            >
+              <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                © 2026 RBHU. All rights reserved.
+              </span>
+              <div className="flex items-center gap-4">
+                <a
+                  href="#"
+                  className="text-xs transition-colors duration-150 hover:underline"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  Privacy
+                </a>
+                <a
+                  href="#"
+                  className="text-xs transition-colors duration-150 hover:underline"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  Terms
+                </a>
+                <a
+                  href="#"
+                  className="text-xs transition-colors duration-150 hover:underline"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  Support
+                </a>
+              </div>
+            </footer>
           </motion.div>
         </main>
       </div>

@@ -69,10 +69,10 @@ const Home = () => {
       <div className={`transition-all duration-500 ${currentQuery ? 'mt-8' : 'mt-20'}`}>
         {!currentQuery && (
           <div className="text-center mb-12">
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
+            <h1 className="text-5xl font-extrabold mb-4" style={{ color: 'var(--color-text)' }}>
               What do you want to know?
             </h1>
-            <p className="text-xl text-gray-500">
+            <p className="text-xl" style={{ color: 'var(--color-text-secondary)' }}>
               Search through your documents and get instant answers.
             </p>
           </div>
