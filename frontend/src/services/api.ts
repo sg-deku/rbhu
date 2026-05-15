@@ -7,4 +7,8 @@ export const api = {
   post: (endpoint: string, body: any, auth = true) => fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: headers(auth), body: JSON.stringify(body) }).then(r => r.json()),
   put: (endpoint: string, body: any, auth = true) => fetch(`${API_URL}${endpoint}`, { method: 'PUT', headers: headers(auth), body: JSON.stringify(body) }).then(r => r.json()),
   delete: (endpoint: string, auth = true) => fetch(`${API_URL}${endpoint}`, { method: 'DELETE', headers: headers(auth) }).then(r => r.json()),
+  search: {
+    getSuggestions: (q: string) => fetch(`${API_URL}/search/suggestions?q=${encodeURIComponent(q)}`, { headers: headers(false) }).then(r => r.json()),
+    query: (query: string) => api.post('/search/query', { query }, false),
+  }
 }

@@ -13,12 +13,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["vite/client", "vitest/globals"]
+    "types": ["vite/client", "vitest/globals"],
+    "noEmit": true
   },
   "include": [
     "src"
   ],
   "exclude": [
-    "src/__tests__"
+    "node_modules"
   ]
 }
