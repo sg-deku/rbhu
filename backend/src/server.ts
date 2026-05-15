@@ -70,7 +70,7 @@ const swaggerOptions = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./src/routes/*.ts', './src/docs/*.yaml'],
+  apis: ['./src/routes/*.ts', './dist/routes/*.js', './src/docs/*.yaml', './docs/*.yaml'],
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
