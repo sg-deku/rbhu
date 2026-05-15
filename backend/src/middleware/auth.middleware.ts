@@ -21,7 +21,7 @@ export const authMiddleware = (req: any, res: Response, next: NextFunction) => {
 };
 
 export const adminMiddleware = (req: any, res: Response, next: NextFunction) => {
-  if (req.role !== 'admin') {
+  if (req.role !== 'ADMIN') {
     return res.status(403).json({ success: false, message: 'Admin access required' });
   }
   next();

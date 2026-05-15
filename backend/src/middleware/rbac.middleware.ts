@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 
-type Role = 'user' | 'admin' | 'moderator' | 'superadmin';
+type Role = 'USER' | 'ADMIN' | 'MODERATOR' | 'SUPERADMIN';
 
 // Permission map
 const permissions: Record<Role, string[]> = {
-  user: ['read:own', 'update:own', 'delete:own'],
-  moderator: ['read:own', 'read:any', 'update:own', 'update:any', 'delete:own'],
-  admin: ['read:own', 'read:any', 'update:own', 'update:any', 'delete:own', 'delete:any', 'create:any'],
-  superadmin: ['*'], // All permissions
+  USER: ['read:own', 'update:own', 'delete:own'],
+  MODERATOR: ['read:own', 'read:any', 'update:own', 'update:any', 'delete:own'],
+  ADMIN: ['read:own', 'read:any', 'update:own', 'update:any', 'delete:own', 'delete:any', 'create:any'],
+  SUPERADMIN: ['*'], // All permissions
 };
 
 export const hasPermission = (role: Role, permission: string): boolean => {

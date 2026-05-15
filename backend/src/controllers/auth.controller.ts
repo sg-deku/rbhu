@@ -18,12 +18,12 @@ export const register = async (req: Request, res: Response) => {
     });
     
     const token = jwt.sign(
-      { userId: user.id, email: user.email, organizationId: user.organizationId ?? null },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organizationId ?? null },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({ success: true, token, user: { id: user.id, name, email, organizationId: user.organizationId } });
+    res.status(201).json({ success: true, token, user: { id: user.id, name, email, role: user.role, organizationId: user.organizationId } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -43,12 +43,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, organizationId: user.organizationId ?? null },
+      { userId: user.id, email: user.email, role: user.role, organizationId: user.organizationId ?? null },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '7d' }
     );
 
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email, organizationId: user.organizationId } });
+    res.json({ success: true, token, user: { id: user.id, name: user.name, email, role: user.role, organizationId: user.organizationId } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
