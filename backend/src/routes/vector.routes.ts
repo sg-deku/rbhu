@@ -16,8 +16,38 @@ const managementLimiter = rateLimit({
 });
 
 // All vector management routes require authentication and admin role
+/**
+ * @swagger
+ * /api/vector/setup:
+ *   post:
+ *     summary: POST /setup
+ *     tags: [Vector]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
 router.post('/setup', authMiddleware, adminMiddleware, managementLimiter, vectorController.setupIndex);
+/**
+ * @swagger
+ * /api/vector/delete:
+ *   delete:
+ *     summary: DELETE /delete
+ *     tags: [Vector]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
 router.delete('/delete', authMiddleware, adminMiddleware, managementLimiter, vectorController.removeIndex);
+/**
+ * @swagger
+ * /api/vector/reindex:
+ *   post:
+ *     summary: POST /reindex
+ *     tags: [Vector]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
 router.post('/reindex', authMiddleware, adminMiddleware, managementLimiter, vectorController.rebuildIndex);
 
 export default router;
