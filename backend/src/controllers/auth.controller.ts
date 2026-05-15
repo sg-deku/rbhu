@@ -23,7 +23,7 @@ export const register = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({ success: true, token, user: { id: user.id, name, email } });
+    res.status(201).json({ success: true, token, user: { id: user.id, name, email, organizationId: user.organizationId } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -48,7 +48,7 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ success: true, token, user: { id: user.id, name: user.name, email } });
+    res.json({ success: true, token, user: { id: user.id, name: user.name, email, organizationId: user.organizationId } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -62,7 +62,7 @@ export const getProfile = async (req: any, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true }
+      select: { id: true, name: true, email: true, role: true, avatar: true, organizationId: true, createdAt: true }
     });
     res.json({ success: true, user });
   } catch (error: any) {

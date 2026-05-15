@@ -7,17 +7,35 @@ datasource db {
   provider = "postgresql"
 }
 
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  integrations     Integration[]
+  documentMetadata DocumentMetadata[]
+}
+
 model User {
-  id           String                @id @default(cuid())
-  name         String
-  email        String                @unique
-  password     String
-  role         Role                  @default(USER)
-  avatar       String?
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  integrations Integration[]
-  activities   IntegrationActivity[]
+  id             String                @id @default(cuid())
+  name           String
+  email          String                @unique
+  password       String
+  role           Role                  @default(USER)
+  avatar         String?
+  organizationId String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization     Organization?         @relation(fields: [organizationId], references: [id])
+  integrations     Integration[]
+  activities       IntegrationActivity[]
+  documentMetadata DocumentMetadata[]
+
+  @@index([organizationId])
 }
 
 enum Role {
@@ -52,9 +70,16 @@ enum IntegrationEventType {
   config_updated
 }
 
+enum SyncLogStatus {
+  success
+  failed
+  partial
+}
+
 model Integration {
   id              String              @id @default(cuid())
   userId          String
+  organizationId  String?
   provider        IntegrationProvider
   status          IntegrationStatus   @default(disconnected)
   accessToken     String
@@ -71,12 +96,16 @@ model Integration {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  config     IntegrationConfig?
-  activities IntegrationActivity[]
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization      Organization?         @relation(fields: [organizationId], references: [id])
+  config            IntegrationConfig?
+  activities        IntegrationActivity[]
+  syncLogs          SyncLog[]
+  documentMetadata  DocumentMetadata[]
 
   @@unique([userId, provider])
   @@index([userId])
+  @@index([organizationId])
 }
 
 model IntegrationConfig {
@@ -104,4 +133,42 @@ model IntegrationActivity {
 
   @@index([userId])
   @@index([integrationId])
+}
+
+model SyncLog {
+  id            String        @id @default(cuid())
+  integrationId String
+  status        SyncLogStatus
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  syncedCount   Int?
+  errorMessage  String?
+  details       Json?
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+}
+
+model DocumentMetadata {
+  id             String              @id @default(cuid())
+  externalId     String
+  provider       IntegrationProvider
+  sourceUrl      String?
+  title          String?
+  lastSyncedAt   DateTime?
+  integrationId  String
+  userId         String
+  organizationId String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  integration  Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@unique([provider, externalId])
+  @@index([integrationId])
+  @@index([userId])
+  @@index([organizationId])
 }
