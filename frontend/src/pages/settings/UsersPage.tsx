@@ -39,6 +39,8 @@ const UsersPage = () => {
       const res = await api.get('/users', true)
       if (res.success) {
         setUsers(res.data)
+      } else {
+        setError(res.message || 'Failed to fetch users')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch users')
