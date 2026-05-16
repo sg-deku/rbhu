@@ -25,8 +25,12 @@ import jiraRoutes from './routes/jira.routes';
 import confluenceRoutes from './routes/confluence.routes';
 import oauthRoutes from './routes/oauth.routes';
 import vectorRoutes from './routes/vector.routes';
-import { startIntegrationScheduler } from './services/integration-scheduler';
-
+import { startScheduler } from './services/scheduler.service';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { syncQueue } from './services/queue.service';
+import './workers/sync.worker'; // Start the worker
 
 const app = express();
 
@@ -86,6 +90,15 @@ app.use('/api/confluence', confluenceRoutes);
 app.use('/api/oauth', oauthRoutes);
 app.use('/api/vector', vectorRoutes);
 
+// Bull Board (RB-61: Monitoring dashboard)
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath('/admin/queues');
+createBullBoard({
+  queues: [new BullMQAdapter(syncQueue)],
+  serverAdapter,
+});
+app.use('/admin/queues', serverAdapter.getRouter());
+
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', project: 'rbhu', timestamp: new Date() });
@@ -108,7 +121,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 const startServer = async () => {
   if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_SERVER_START !== 'true') {
     await connectDB();
-    startIntegrationScheduler();
+    startScheduler();
 
     app.listen(PORT, () => {
       console.log(`🧭 rbhu server running on port ${PORT}`);
