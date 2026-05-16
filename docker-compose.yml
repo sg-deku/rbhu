@@ -51,6 +51,15 @@ services:
       - elastic_data:/usr/share/elasticsearch/data
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
   elastic_data:
+  redis_data:
