@@ -25,7 +25,7 @@ describe('Streaming Service (RB-41)', () => {
       end: jest.fn()
     } as any;
 
-    await streamResponse(mockRes, 'System prompt', 'User prompt');
+    await streamResponse(mockRes, 'System prompt', 'User prompt', []);
 
     expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
     expect(mockRes.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
