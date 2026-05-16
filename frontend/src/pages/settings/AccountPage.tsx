@@ -65,6 +65,20 @@ const AccountPage = () => {
     setTimeout(() => setPasswordSaved(false), 3000)
   }
 
+  const handleSendResetLink = async () => {
+    if (!user?.email) return;
+    try {
+      const res = await api.post('/auth/forgot-password', { email: user.email }, false)
+      if (res.success) {
+        alert('Password reset link has been sent to your email.')
+      } else {
+        alert(res.message || 'Failed to send password reset link')
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to send password reset link')
+    }
+  }
+
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
@@ -246,6 +260,13 @@ const AccountPage = () => {
                   className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors"
                 >
                   Update password
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendResetLink}
+                  className="px-5 py-2.5 rounded-lg text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 shadow-sm transition-colors"
+                >
+                  Send Reset Link
                 </button>
                 {passwordSaved && (
                   <motion.span
