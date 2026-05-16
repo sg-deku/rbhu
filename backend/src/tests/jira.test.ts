@@ -1,10 +1,15 @@
 import { JiraService } from '../services/jira.service';
 import { PrismaClient } from '@prisma/client';
 
+jest.mock('../utils/encryption', () => ({
+  encrypt: jest.fn((text) => text),
+  decrypt: jest.fn((text) => text),
+}));
+
 jest.mock('@prisma/client', () => {
   const mPrisma = {
-    atlassianIntegration: {
-      findFirst: jest.fn(),
+    integration: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
   };
@@ -35,9 +40,9 @@ describe('JiraService', () => {
   });
 
   it('should fetch projects successfully', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -60,24 +65,24 @@ describe('JiraService', () => {
   });
 
   it('should handle token refresh on 401', async () => {
-    prisma.atlassianIntegration.findFirst
+    prisma.integration.findUnique
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'old-token',
         refreshToken: 'refresh-token',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       })
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'old-token',
         refreshToken: 'refresh-token',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       })
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'new-token',
         refreshToken: 'new-refresh',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       });
 
     (refreshAtlassianToken as jest.Mock).mockResolvedValue({
@@ -85,7 +90,7 @@ describe('JiraService', () => {
       refreshToken: 'new-refresh',
     });
 
-    prisma.atlassianIntegration.update.mockResolvedValue({});
+    prisma.integration.update.mockResolvedValue({});
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -100,22 +105,22 @@ describe('JiraService', () => {
     const projects = await jiraService.getProjects() as any[];
 
     expect(projects).toHaveLength(1);
-    expect(prisma.atlassianIntegration.update).toHaveBeenCalledWith({
+    expect(prisma.integration.update).toHaveBeenCalledWith({
       where: { id: 'int-1' },
       data: { accessToken: 'new-token', refreshToken: 'new-refresh' },
     });
   });
 
   it('should throw error if integration not found', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue(null);
+    prisma.integration.findUnique.mockResolvedValue(null);
 
     await expect(jiraService.getProjects()).rejects.toThrow('JIRA integration not found');
   });
 
   it('should fetch issues with default pagination', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -133,9 +138,9 @@ describe('JiraService', () => {
   });
 
   it('should fetch issues for a specific project with custom pagination', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -156,9 +161,9 @@ describe('JiraService', () => {
   });
 
   it('should fetch comments and sort chronologically when threaded is true', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     const mockComments = [
@@ -178,9 +183,9 @@ describe('JiraService', () => {
   });
 
   it('should return raw response when threaded is false', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -194,9 +199,9 @@ describe('JiraService', () => {
   });
 
   it('should generate issue URL successfully', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -212,9 +217,9 @@ describe('JiraService', () => {
   });
 
   it('should throw error if cloud resource not found', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-999',
+      accountId: 'cloud-999',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -226,9 +231,9 @@ describe('JiraService', () => {
   });
 
   it('should retry on 429 rate limit', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock)

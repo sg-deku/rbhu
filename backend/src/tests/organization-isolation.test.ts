@@ -55,6 +55,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const mockPrisma = prisma as any;
 
 function makeTokenWithOrg(userId: string, organizationId: string | null = null) {
+  mockPrisma.user.findUnique.mockResolvedValue({ id: userId, email: `${userId}@example.com`, organizationId, role: 'USER' });
   return jwt.sign({ userId, email: `${userId}@example.com`, organizationId }, JWT_SECRET, { expiresIn: '1h' });
 }
 

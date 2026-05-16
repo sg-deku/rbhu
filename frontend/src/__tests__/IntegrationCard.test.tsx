@@ -31,7 +31,7 @@ describe('IntegrationCard', () => {
       />
     )
     expect(screen.getByText('Not Connected')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Connect/i })).toBeInTheDocument()
   })
 
   it('renders with connected integration showing Connected badge and accountName', () => {

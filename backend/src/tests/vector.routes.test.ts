@@ -3,6 +3,20 @@ import app from '../server';
 import * as vectorStoreService from '../services/vector-store.service';
 import jwt from 'jsonwebtoken';
 
+jest.mock('../config/database', () => ({
+  __esModule: true,
+  default: {
+    user: {
+      findUnique: jest.fn().mockImplementation(async ({ where }: any) => {
+        if (where.id === 'admin-1') return { id: 'admin-1', role: 'ADMIN' };
+        if (where.id === 'user-1') return { id: 'user-1', role: 'USER' };
+        return null;
+      }),
+    }
+  },
+  connectDB: jest.fn().mockResolvedValue(undefined)
+}));
+
 jest.mock('../services/vector-store.service');
 
 describe('Vector Store API', () => {

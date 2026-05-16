@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "vercel-build": "tsc && vite build && cp -r dist public",
     "preview": "vite preview",
     "test": "vitest run"
   },

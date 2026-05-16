@@ -7,8 +7,14 @@ import { ConfluenceService } from '../services/confluence.service';
 
 jest.mock('@prisma/client', () => {
   const mPrisma = {
-    atlassianIntegration: {
+    integration: {
       upsert: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    integrationActivity: {
+      create: jest.fn(),
+    },
+    user: {
       findUnique: jest.fn(),
     },
     $connect: jest.fn(),
@@ -37,6 +43,7 @@ describe('Confluence Controller', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.user.findUnique.mockResolvedValue({ id: 'user-123', role: 'USER' });
   });
 
   describe('GET /api/confluence/auth', () => {
@@ -81,7 +88,9 @@ describe('Confluence Controller', () => {
       expect(sitesRes.body.data).toEqual(mockSites);
 
       // 3. Select Site
-      prisma.atlassianIntegration.upsert.mockResolvedValue({});
+      prisma.integration.upsert.mockResolvedValue({});
+
+      prisma.integration.findUnique.mockResolvedValue({ id: 'int-123' });
 
       const selectRes = await agent
         .post('/api/confluence/select-site')
@@ -90,12 +99,11 @@ describe('Confluence Controller', () => {
 
       expect(selectRes.status).toBe(200);
       expect(selectRes.body.success).toBe(true);
-      expect(prisma.atlassianIntegration.upsert).toHaveBeenCalledWith(
+      expect(prisma.integration.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId_cloudId: { userId, cloudId: 'site-1' } },
+          where: { userId_provider: { userId, provider: 'confluence' } },
           create: expect.objectContaining({
-            confluenceEnabled: true,
-            jiraEnabled: false,
+            accountId: 'site-1',
           }),
         })
       );

@@ -25,6 +25,11 @@ describe('RBAC Management API', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrisma.user.findUnique.mockImplementation(async ({ where }: any) => {
+      if (where.id === 'admin-1') return { id: 'admin-1', role: 'ADMIN' };
+      if (where.id === 'user-1') return { id: 'user-1', role: 'USER' };
+      return null;
+    });
   });
 
   describe('GET /api/users', () => {

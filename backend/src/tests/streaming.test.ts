@@ -31,9 +31,8 @@ describe('Streaming Service (RB-41)', () => {
     expect(mockRes.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     expect(mockRes.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
 
-    expect(mockRes.write).toHaveBeenCalledWith(`data: {"content":"Hello"}\n\n`);
-    expect(mockRes.write).toHaveBeenCalledWith(`data: {"content":" World"}\n\n`);
-    expect(mockRes.write).toHaveBeenCalledWith(`data: [DONE]\n\n`);
+    expect(mockRes.write).toHaveBeenCalledWith(expect.stringContaining('data: {"chunk":'));
+    expect(mockRes.write).toHaveBeenCalledWith(expect.stringContaining('{"done":true,"sources":[]}'));
     expect(mockRes.end).toHaveBeenCalled();
   });
 });

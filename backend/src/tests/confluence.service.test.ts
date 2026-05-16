@@ -3,10 +3,15 @@ import { PrismaClient } from '@prisma/client';
 import { refreshAtlassianToken } from '../config/atlassian.auth';
 import { indexDocument, createIndex } from '../services/search.service';
 
+jest.mock('../utils/encryption', () => ({
+  encrypt: jest.fn((text) => text),
+  decrypt: jest.fn((text) => text),
+}));
+
 jest.mock('@prisma/client', () => {
   const mPrisma = {
-    atlassianIntegration: {
-      findFirst: jest.fn(),
+    integration: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
   };
@@ -40,9 +45,9 @@ describe('ConfluenceService', () => {
   });
 
   it('should fetch spaces successfully', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -67,24 +72,24 @@ describe('ConfluenceService', () => {
   });
 
   it('should handle token refresh on 401', async () => {
-    prisma.atlassianIntegration.findFirst
+    prisma.integration.findUnique
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'old-token',
         refreshToken: 'refresh-token',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       })
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'old-token',
         refreshToken: 'refresh-token',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       })
       .mockResolvedValueOnce({
         id: 'int-1',
         accessToken: 'new-token',
         refreshToken: 'new-refresh',
-        cloudId: 'cloud-123',
+        accountId: 'cloud-123',
       });
 
     (refreshAtlassianToken as jest.Mock).mockResolvedValue({
@@ -92,7 +97,7 @@ describe('ConfluenceService', () => {
       refreshToken: 'new-refresh',
     });
 
-    prisma.atlassianIntegration.update.mockResolvedValue({});
+    prisma.integration.update.mockResolvedValue({});
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -106,16 +111,16 @@ describe('ConfluenceService', () => {
 
     await confluenceService.getSpaces();
 
-    expect(prisma.atlassianIntegration.update).toHaveBeenCalledWith({
+    expect(prisma.integration.update).toHaveBeenCalledWith({
       where: { id: 'int-1' },
       data: { accessToken: 'new-token', refreshToken: 'new-refresh' },
     });
   });
 
   it('should retry on 429 rate limit', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock)
@@ -139,9 +144,9 @@ describe('ConfluenceService', () => {
   });
 
   it('should build a nested page tree', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     const mockPages = [
@@ -170,9 +175,9 @@ describe('ConfluenceService', () => {
   });
 
   it('should follow pagination in getPageTree', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock)
@@ -202,9 +207,9 @@ describe('ConfluenceService', () => {
   });
 
   it('should fetch blog posts successfully', async () => {
-    prisma.atlassianIntegration.findFirst.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'token-123',
-      cloudId: 'cloud-123',
+      accountId: 'cloud-123',
     });
 
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -222,10 +227,10 @@ describe('ConfluenceService', () => {
 
   describe('getPage and getBlogPost', () => {
     beforeEach(() => {
-      prisma.atlassianIntegration.findFirst.mockResolvedValue({
+      prisma.integration.findUnique.mockResolvedValue({
         accessToken: 'token-123',
-        cloudId: 'cloud-123',
-        siteUrl: 'https://site.atlassian.net'
+        accountId: 'cloud-123',
+        accountName: 'https://site.atlassian.net'
       });
     });
 

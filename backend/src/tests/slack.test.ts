@@ -2,13 +2,18 @@ import { SlackService } from '../services/slack.service';
 import { PrismaClient } from '@prisma/client';
 import { WebClient } from '@slack/web-api';
 
+jest.mock('../utils/encryption', () => ({
+  encrypt: jest.fn((text) => text),
+  decrypt: jest.fn((text) => text),
+}));
+
 const mockList = jest.fn();
 const mockHistory = jest.fn();
 const mockReplies = jest.fn();
 
 jest.mock('@prisma/client', () => {
   const mPrisma = {
-    slackIntegration: {
+    integration: {
       findUnique: jest.fn(),
     },
   };
@@ -39,7 +44,7 @@ describe('SlackService', () => {
   });
 
   it('should get channels successfully', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'slack-token-123',
     });
 
@@ -56,7 +61,7 @@ describe('SlackService', () => {
   });
 
   it('should get messages successfully', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'slack-token-123',
     });
 
@@ -72,7 +77,7 @@ describe('SlackService', () => {
   });
 
   it('should get thread messages successfully', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'slack-token-123',
     });
 
@@ -88,7 +93,7 @@ describe('SlackService', () => {
   });
 
   it('should sync channel history with pagination', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'slack-token-123',
     });
 
@@ -112,7 +117,7 @@ describe('SlackService', () => {
   });
 
   it('should resolve threads for messages with replies', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue({
+    prisma.integration.findUnique.mockResolvedValue({
       accessToken: 'slack-token-123',
     });
 
@@ -142,7 +147,7 @@ describe('SlackService', () => {
   });
 
   it('should throw error if integration not found', async () => {
-    prisma.slackIntegration.findUnique.mockResolvedValue(null);
+    prisma.integration.findUnique.mockResolvedValue(null);
 
     await expect(slackService.getChannels()).rejects.toThrow('Slack integration not found for user');
   });
