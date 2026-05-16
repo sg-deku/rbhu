@@ -15,6 +15,12 @@ jest.mock('../config/database', () => ({
     integrationActivity: {
       create: jest.fn(),
     },
+    syncLog: {
+      create: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ organizationId: null }),
+    },
   },
 }));
 
@@ -286,6 +292,7 @@ describe('Integration model: token management', () => {
 
       const result = await syncIntegration('user-1', 'slack');
       expect(result).toEqual({ jobId: 'int-1', status: 'queued' });
+      await new Promise(resolve => setTimeout(resolve, 10));
     });
   });
 

@@ -226,6 +226,7 @@ describe('Integration Service', () => {
         expect.objectContaining({ data: { syncStatus: 'syncing' } })
       );
       expect(result).toEqual({ jobId: 'int-1', status: 'queued' });
+      await new Promise(resolve => setTimeout(resolve, 10));
     });
 
     it('should throw when integration not found', async () => {

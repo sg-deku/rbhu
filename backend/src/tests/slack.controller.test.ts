@@ -9,9 +9,12 @@ const mockList = jest.fn();
 
 jest.mock('@prisma/client', () => {
   const mPrisma = {
-    slackIntegration: {
+    integration: {
       upsert: jest.fn(),
       findUnique: jest.fn(),
+    },
+    integrationActivity: {
+      create: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -20,6 +23,11 @@ jest.mock('@prisma/client', () => {
   };
   return { PrismaClient: jest.fn(() => mPrisma) };
 });
+
+jest.mock('../utils/encryption', () => ({
+  encrypt: jest.fn((text) => text),
+  decrypt: jest.fn((text) => text),
+}));
 
 jest.mock('@slack/web-api', () => {
   return {
@@ -44,10 +52,13 @@ describe('Slack Controller', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.user.findUnique.mockResolvedValue({ id: userId, role: 'USER' });
   });
 
   describe('GET /api/slack/auth', () => {
     it('should redirect to Slack authorize URL', async () => {
+      prisma.integration.upsert.mockResolvedValue({});
+      prisma.integration.findUnique.mockResolvedValue({ id: 'int-123' });
       const res = await request(app)
         .get('/api/slack/auth')
         .set('Authorization', `Bearer ${token}`);
@@ -66,18 +77,21 @@ describe('Slack Controller', () => {
         team: { id: 'T123', name: 'Test Team' },
       });
 
+      prisma.integration.upsert.mockResolvedValue({});
+      prisma.integration.findUnique.mockResolvedValue({ id: 'int-123' });
       const res = await request(app)
         .get('/api/slack/callback')
         .query({ code: 'code-123', state: userId });
 
       expect(res.status).toBe(302);
       expect(res.header.location).toContain('status=success');
-      expect(prisma.slackIntegration.upsert).toHaveBeenCalledWith(
+      expect(prisma.integration.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId },
+          where: { userId_provider: { userId, provider: 'slack' } },
           create: expect.objectContaining({
             accessToken: 'xoxb-123',
-            teamId: 'T123',
+            accountId: 'T123',
+            accountName: 'Test Team',
           }),
         })
       );
@@ -89,6 +103,8 @@ describe('Slack Controller', () => {
         error: 'invalid_code',
       });
 
+      prisma.integration.upsert.mockResolvedValue({});
+      prisma.integration.findUnique.mockResolvedValue({ id: 'int-123' });
       const res = await request(app)
         .get('/api/slack/callback')
         .query({ code: 'wrong-code', state: userId });
@@ -100,7 +116,7 @@ describe('Slack Controller', () => {
 
   describe('GET /api/slack/channels', () => {
     it('should return channels for authenticated user', async () => {
-      prisma.slackIntegration.findUnique.mockResolvedValue({
+      prisma.integration.findUnique.mockResolvedValue({
         accessToken: 'xoxb-123',
       });
 
@@ -109,6 +125,10 @@ describe('Slack Controller', () => {
         channels: [{ id: 'C123', name: 'general' }],
       });
 
+      prisma.integration.findUnique.mockResolvedValue({
+        id: 'int-123',
+        accessToken: 'xoxb-123',
+      });
       const res = await request(app)
         .get('/api/slack/channels')
         .set('Authorization', `Bearer ${token}`);
