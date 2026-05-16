@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, Variants } from 'framer-motion'
-import { Users, MoreHorizontal, Shield, User as UserIcon, Trash2, Plus, X } from 'lucide-react'
+import { Users, MoreHorizontal, Shield, User as UserIcon, Trash2, Plus, X, Key } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -73,6 +73,19 @@ const UsersPage = () => {
       }
     } catch (err: any) {
       alert(err.message || 'Failed to delete user')
+    }
+  }
+
+  const handleResetPassword = async (email: string) => {
+    try {
+      const res = await api.post('/auth/forgot-password', { email }, false)
+      if (res.success) {
+        alert('Password reset link has been sent to the user.')
+      } else {
+        alert(res.message || 'Failed to send password reset link')
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to send password reset link')
     }
   }
 
@@ -194,6 +207,13 @@ const UsersPage = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleResetPassword(user.email)}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          title="Reset Password"
+                        >
+                          <Key className="w-4 h-4" />
+                        </button>
                         <button 
                           onClick={() => handleDeleteUser(user.id)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"

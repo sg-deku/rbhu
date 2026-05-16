@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, logout, getProfile } from '../controllers/auth.controller';
+import { register, login, logout, getProfile, forgotPassword, resetPassword } from '../controllers/auth.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { validateRegister, validateLogin } from '../validators/auth.validator';
 
@@ -43,5 +43,29 @@ router.post('/logout', authMiddleware, logout);
  *         description: Successful response
  */
 router.get('/profile', authMiddleware, getProfile);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: POST /forgot-password
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: POST /reset-password
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+router.post('/reset-password', resetPassword);
 
 export default router;
